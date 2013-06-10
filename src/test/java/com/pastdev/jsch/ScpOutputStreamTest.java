@@ -2,11 +2,17 @@ package com.pastdev.jsch;
 
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.Reader;
+import java.io.Writer;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
 
@@ -23,18 +29,18 @@ import org.slf4j.LoggerFactory;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
+import com.pastdev.jsch.scp.CopyMode;
+import com.pastdev.jsch.scp.ScpEntry;
+import com.pastdev.jsch.scp.ScpInputStream;
+import com.pastdev.jsch.scp.ScpMode;
 import com.pastdev.jsch.scp.ScpOutputStream;
-import com.pastdev.jsch.scp.ScpOutputStream.CopyMode;
 
 
 public class ScpOutputStreamTest {
     private static Logger logger = LoggerFactory.getLogger( ScpOutputStreamTest.class );
-    private static final Charset charset = Charset.forName( "UTF-8" );
+    private static final Charset UTF8 = Charset.forName( "UTF-8" );
     private static JSch jsch;
     private static Properties properties;
-
-    static {
-    }
 
     @BeforeClass
     public static void initializeClass() {
@@ -68,6 +74,87 @@ public class ScpOutputStreamTest {
         Assume.assumeNotNull( properties ); // skip tests if properties not set
     }
 
+    private void createFile( File file, String string ) throws IOException {
+        Writer writer = null;
+        try {
+            writer = new FileWriter( file );
+            writer.write( string );
+        }
+        finally {
+            if ( writer != null ) {
+                writer.close();
+            }
+        }
+    }
+
+    @Test
+    public void testInputStream() {
+        String rootDir = UUID.randomUUID().toString();
+        String scpPath = properties.getProperty( "scp.out.test.scpPath" ) + "/" + rootDir;
+        String dir = "tmp2";
+        String filesystemPath = properties.getProperty( "scp.out.test.filesystemPath" );
+        String username = properties.getProperty( "scp.out.test.username" );
+        String hostname = "localhost";
+        int port = Integer.parseInt( properties.getProperty( "scp.out.test.port" ) );
+
+        String expected = "Hello, world!";
+        String filename = "test_" + UUID.randomUUID().toString() + ".txt";
+        String filename2 = "test_" + UUID.randomUUID().toString() + ".txt";
+
+        File rootFile = new File( filesystemPath, rootDir );
+        try {
+            rootFile.mkdirs();
+            File dirFile = new File( rootFile, dir );
+            dirFile.mkdirs();
+            createFile( new File( rootFile, filename ), expected );
+            createFile( new File( dirFile, filename ), expected );
+            createFile( new File( rootFile, filename2 ), expected );
+        }
+        catch ( IOException e ) {
+            Assert.fail( e.getMessage() );
+        }
+
+        try {
+            Session session = jsch.getSession( username, hostname, port );
+            ScpInputStream inputStream = null;
+            try {
+                inputStream = new ScpInputStream( session, scpPath, CopyMode.RECURSIVE );
+                List<ScpEntry> entries = new ArrayList<ScpEntry>();
+                while ( true ) {
+                    ScpEntry entry = inputStream.getNextEntry();
+                    if ( entry == null ) break;
+                    if ( entry.isFile() ) {
+                        String data = readFully( inputStream );
+                        logger.debug( "read '{}'", data );
+                    }
+                    entries.add( entry );
+                }
+            }
+            catch ( IOException e ) {
+                logger.error( "failed to write to ScpInputStream: {}", e.getMessage() );
+                logger.debug( "failed to write to ScpInputStream: ", e );
+                Assert.fail( e.getMessage() );
+            }
+            finally {
+                if ( inputStream != null ) {
+                    try {
+                        inputStream.close();
+                    }
+                    catch ( IOException e ) {
+                        logger.error( "failed to close ScpInputStream: {}", e.getMessage() );
+                        logger.debug( "failed to close ScpInputStream: ", e );
+                    }
+                }
+            }
+        }
+        catch ( JSchException e ) {
+            Assert.fail( e.getMessage() );
+        }
+        finally {
+            rootFile.delete();
+        }
+    }
+
     @Test
     public void testOutputStream() {
         String scpPath = properties.getProperty( "scp.out.test.scpPath" );
@@ -79,17 +166,30 @@ public class ScpOutputStreamTest {
 
         String expected = "Hello, world!";
         String filename = "test_" + UUID.randomUUID().toString() + ".txt";
+        String filename2 = "test_" + UUID.randomUUID().toString() + ".txt";
 
         try {
             Session session = jsch.getSession( username, hostname, port );
             ScpOutputStream outputStream = null;
             try {
-                outputStream = new ScpOutputStream( session, scpPath, CopyMode.RECURSIVE );
-                outputStream.nextFile( filename, expected.length() );
-                outputStream.write( expected.getBytes( charset ) );
-                outputStream.nextDirectory( dir );
-                outputStream.nextFile( filename, expected.length() );
-                outputStream.write( expected.getBytes( charset ) );
+                outputStream = new ScpOutputStream( session, scpPath, ScpMode.TO, CopyMode.RECURSIVE );
+
+                outputStream.putNextEntry( filename, expected.length() );
+                outputStream.write( expected.getBytes( UTF8 ) );
+                outputStream.closeEntry();
+
+                outputStream.putNextEntry( dir );
+
+                outputStream.putNextEntry( filename, expected.length() );
+                outputStream.write( expected.getBytes( UTF8 ) );
+                outputStream.closeEntry();
+
+                // instead of outputStream.closeEntry() lets try this:
+                outputStream.putNextEntry( ScpEntry.newEndOfDirectory() );
+
+                outputStream.putNextEntry( filename2, expected.length() );
+                outputStream.write( expected.getBytes( UTF8 ) );
+                outputStream.closeEntry();
             }
             catch ( IOException e ) {
                 logger.error( "failed to write to ScpOutputStream: {}", e.getMessage() );
@@ -109,6 +209,7 @@ public class ScpOutputStreamTest {
             }
 
             verifyAndDeleteFile( new File( filesystemPath, filename ), expected );
+            verifyAndDeleteFile( new File( filesystemPath, filename2 ), expected );
             File dirFile = new File( filesystemPath, dir );
             verifyAndDeleteFile( new File( dirFile, filename ), expected );
             dirFile.delete();
@@ -118,18 +219,22 @@ public class ScpOutputStreamTest {
         }
     }
 
+    private String readFully( InputStream inputStream ) throws IOException {
+        StringBuilder builder = new StringBuilder();
+        byte[] byteBuffer = new byte[1024];
+        int bytesRead = 0;
+        while ( (bytesRead = inputStream.read( byteBuffer, 0, 1024 )) >= 0 ) {
+            builder.append( new String( byteBuffer, 0, bytesRead, UTF8 ) );
+        }
+        return builder.toString();
+    }
+
     public void verifyAndDeleteFile( File file, String expected ) {
         if ( file.exists() ) {
-            Reader reader = null;
+            InputStream inputStream = null;
             try {
-                reader = new FileReader( file );
-                StringBuilder builder = new StringBuilder();
-                char[] charBuffer = new char[1024];
-                int charsRead = 0;
-                while ( (charsRead = reader.read( charBuffer, 0, 1024 )) >= 0 ) {
-                    builder.append( charBuffer, 0, charsRead );
-                }
-                Assert.assertEquals( expected, builder.toString() );
+                inputStream = new FileInputStream( file );
+                Assert.assertEquals( expected, readFully( inputStream ) );
             }
             catch ( FileNotFoundException e ) {
                 logger.error( "failed to read from temp file: {}", e.getMessage() );
@@ -142,13 +247,13 @@ public class ScpOutputStreamTest {
                 Assert.fail( e.getMessage() );
             }
             finally {
-                if ( reader != null ) {
+                if ( inputStream != null ) {
                     try {
-                        reader.close();
+                        inputStream.close();
                     }
                     catch ( IOException e ) {
-                        logger.error( "failed to close temp FileReader: {}", e.getMessage() );
-                        logger.debug( "failed to close temp FileReader: ", e );
+                        logger.error( "failed to close temp FileInputStream: {}", e.getMessage() );
+                        logger.debug( "failed to close temp FileInputStream: ", e );
                     }
                 }
             }
