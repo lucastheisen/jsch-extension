@@ -20,7 +20,7 @@ public class ScpInputStream extends InputStream {
     private InputStream inputStream;
 
     public ScpInputStream( Session session, String path, CopyMode copyMode ) throws JSchException, IOException {
-        logger.debug( "Opening ScpOutputStream" );
+        logger.debug( "Opening ScpInputStream" );
         this.connection = new ScpConnection( session, path, ScpMode.FROM, copyMode );
     }
 
