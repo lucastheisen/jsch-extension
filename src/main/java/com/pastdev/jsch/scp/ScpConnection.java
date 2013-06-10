@@ -19,6 +19,14 @@ import com.jcraft.jsch.Session;
 import com.pastdev.jsch.JSchIOException;
 
 
+/**
+ * Based on protocol information found <a
+ * href="https://blogs.oracle.com/janp/entry/how_the_scp_protocol_works"
+ * >here</a>
+ * 
+ * @author LTHEISEN
+ * 
+ */
 public class ScpConnection {
     private static Logger logger = LoggerFactory.getLogger( ScpConnection.class );
     private static final Charset US_ASCII = Charset.forName( "US-ASCII" );
@@ -42,7 +50,7 @@ public class ScpConnection {
         String command = getCommand( path, scpMode, copyMode );
         channel = session.openChannel( "exec" );
         logger.debug( "setting exec command to '{}'", command );
-        ((ChannelExec)channel).setCommand( command );
+        ((ChannelExec) channel).setCommand( command );
 
         outputStream = channel.getOutputStream();
         inputStream = channel.getInputStream();
@@ -101,7 +109,7 @@ public class ScpConnection {
             int c;
             while ( (c = inputStream.read()) != '\n' ) {
                 c = inputStream.read();
-                sb.append( (char)c );
+                sb.append( (char) c );
             }
             if ( b == 1 || b == 2 ) {
                 throw new JSchIOException( sb.toString() );
@@ -162,7 +170,7 @@ public class ScpConnection {
             return null;
         }
         CurrentEntry currentEntry = entryStack.peek();
-        return (currentEntry instanceof InputStream) ? (InputStream)currentEntry : null;
+        return (currentEntry instanceof InputStream) ? (InputStream) currentEntry : null;
     }
 
     public OutputStream getCurrentOuputStream() {
@@ -170,7 +178,7 @@ public class ScpConnection {
             return null;
         }
         CurrentEntry currentEntry = entryStack.peek();
-        return (currentEntry instanceof OutputStream) ? (OutputStream)currentEntry : null;
+        return (currentEntry instanceof OutputStream) ? (OutputStream) currentEntry : null;
     }
 
     public ScpEntry getNextEntry() throws IOException {
@@ -179,6 +187,7 @@ public class ScpConnection {
         }
 
         ScpEntry entry = parseMessage();
+        if ( entry == null ) return null;
         if ( entry.isEndOfDirectory() ) {
             while ( !entryStack.isEmpty() ) {
                 boolean isDirectory = entryStack.peek().isDirectoryEntry();
@@ -212,6 +221,7 @@ public class ScpConnection {
      */
     private ScpEntry parseMessage() throws IOException {
         String typeAndMode = readMessageSegment();
+        if ( typeAndMode == null ) return null;
         char type = typeAndMode.charAt( 0 );
         ScpEntry scpEntry = null;
         if ( type == 'E' ) {
@@ -219,8 +229,11 @@ public class ScpConnection {
         }
         else {
             String mode = typeAndMode.substring( 1 );
-            long size = Long.parseLong( readMessageSegment() );
+            String sizeString = readMessageSegment();
+            if ( sizeString == null ) return null;
+            long size = Long.parseLong( sizeString );
             String name = readMessageSegment();
+            if ( name == null ) return null;
 
             switch ( type ) {
                 case 'C':
@@ -276,7 +289,8 @@ public class ScpConnection {
         byte[] buffer = new byte[1024];
         int bytesRead = 0;
         for ( ;; bytesRead++ ) {
-            byte b = (byte)inputStream.read();
+            byte b = (byte) inputStream.read();
+            if ( b == -1 ) return null; // end of stream
             if ( b == ' ' || b == '\n' ) break;
             buffer[bytesRead] = b;
         }
@@ -285,7 +299,7 @@ public class ScpConnection {
 
     private void writeAck() throws IOException {
         logger.debug( "writing ack" );
-        outputStream.write( (byte)0 );
+        outputStream.write( (byte) 0 );
         outputStream.flush();
     }
 
@@ -408,7 +422,7 @@ public class ScpConnection {
                     throw new IOException( "stream not finished ("
                             + ioCount + "!=" + entry.getSize() + ")" );
                 }
-                writeMessage( (byte)0 );
+                writeMessage( (byte) 0 );
                 this.closed = true;
             }
         }

@@ -4,15 +4,16 @@ package com.pastdev.jsch;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.Reader;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 
@@ -26,7 +27,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import com.pastdev.jsch.scp.CopyMode;
@@ -36,17 +36,20 @@ import com.pastdev.jsch.scp.ScpMode;
 import com.pastdev.jsch.scp.ScpOutputStream;
 
 
-public class ScpOutputStreamTest {
-    private static Logger logger = LoggerFactory.getLogger( ScpOutputStreamTest.class );
+public class ScpTest {
+    private static Logger logger = LoggerFactory.getLogger( ScpTest.class );
     private static final Charset UTF8 = Charset.forName( "UTF-8" );
-    private static JSch jsch;
+    private static SessionFactory sessionFactory;
     private static Properties properties;
 
     @BeforeClass
     public static void initializeClass() {
+        InputStream inputStream = null;
         try {
+            inputStream = ClassLoader.getSystemResourceAsStream( "configuration.properties" );
+            Assume.assumeNotNull( inputStream );
             properties = new Properties();
-            properties.load( ClassLoader.getSystemResourceAsStream( "configuration.properties" ) );
+            properties.load( inputStream );
         }
         catch ( IOException e ) {
             logger.warn( "cant find properties file (tests will be skipped): {}", e.getMessage() );
@@ -54,15 +57,24 @@ public class ScpOutputStreamTest {
             properties = null;
             return;
         }
+        finally {
+            if ( inputStream != null ) {
+                try {
+                    inputStream.close();
+                }
+                catch ( IOException e ) {
+                    // really, i dont care...
+                }
+            }
+        }
 
         String knownHosts = properties.getProperty( "ssh.knownHosts" );
         String privateKey = properties.getProperty( "ssh.privateKey" );
 
-        JSch.setLogger( new Slf4jBridge() );
-        jsch = new JSch();
+        sessionFactory = new SessionFactory();
         try {
-            jsch.setKnownHosts( knownHosts );
-            jsch.addIdentity( privateKey );
+            sessionFactory.setKnownHosts( knownHosts );
+            sessionFactory.setIdentityFromPrivateKey( privateKey );
         }
         catch ( JSchException e ) {
             Assume.assumeNoException( e );
@@ -85,6 +97,20 @@ public class ScpOutputStreamTest {
                 writer.close();
             }
         }
+    }
+
+    private String joinPath( List<String> dirs, String file ) {
+        StringBuilder builder = new StringBuilder();
+        for ( String dir : dirs ) {
+            if ( builder.length() > 0 ) {
+                builder.append( "/" );
+            }
+            builder.append( dir );
+        }
+        if ( builder.length() > 0 ) {
+            builder.append( "/" );
+        }
+        return builder.append( file ).toString();
     }
 
     @Test
@@ -115,20 +141,31 @@ public class ScpOutputStreamTest {
         }
 
         try {
-            Session session = jsch.getSession( username, hostname, port );
+            Session session = sessionFactory.getSession( username, hostname, port );
             ScpInputStream inputStream = null;
             try {
-                inputStream = new ScpInputStream( session, scpPath, CopyMode.RECURSIVE );
-                List<ScpEntry> entries = new ArrayList<ScpEntry>();
+                inputStream = new ScpInputStream( session, scpPath + "/*", CopyMode.RECURSIVE );
+                Map<String, String> fileNameToContents = new HashMap<String, String>();
+                List<String> dirs = new ArrayList<String>();
                 while ( true ) {
                     ScpEntry entry = inputStream.getNextEntry();
                     if ( entry == null ) break;
-                    if ( entry.isFile() ) {
-                        String data = readFully( inputStream );
-                        logger.debug( "read '{}'", data );
+                    if ( entry.isDirectory() ) {
+                        dirs.add( entry.getName() );
                     }
-                    entries.add( entry );
+                    else if ( entry.isDirectory() ) {
+                        dirs.remove( dirs.size() - 1 );
+                    }
+                    if ( entry.isFile() ) {
+                        String path = joinPath( dirs, entry.getName() );
+                        String data = readFully( inputStream );
+                        fileNameToContents.put( path, data );
+                    }
                 }
+
+                Assert.assertEquals( expected, fileNameToContents.get( filename ) );
+                Assert.assertEquals( expected, fileNameToContents.get( filename2 ) );
+                Assert.assertEquals( expected, fileNameToContents.get( joinPath( Arrays.asList( new String[] { dir } ), filename ) ) );
             }
             catch ( IOException e ) {
                 logger.error( "failed to write to ScpInputStream: {}", e.getMessage() );
@@ -169,7 +206,7 @@ public class ScpOutputStreamTest {
         String filename2 = "test_" + UUID.randomUUID().toString() + ".txt";
 
         try {
-            Session session = jsch.getSession( username, hostname, port );
+            Session session = sessionFactory.getSession( username, hostname, port );
             ScpOutputStream outputStream = null;
             try {
                 outputStream = new ScpOutputStream( session, scpPath, ScpMode.TO, CopyMode.RECURSIVE );
