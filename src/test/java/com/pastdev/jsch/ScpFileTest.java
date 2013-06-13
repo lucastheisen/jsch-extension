@@ -64,6 +64,27 @@ public class ScpFileTest extends ScpTestBase {
     }
 
     @Test
+    public void testCopyFromFile() {
+        String toFilename = "actual.txt";
+        File toFile = new File( dir, toFilename );
+        try {
+            IOUtils.writeFile( file, expected, UTF8 );
+            ScpFile to = new ScpFile( session, scpPath, rootDir, toFilename );
+            to.copyFrom( file );
+            String actual = IOUtils.readFile( toFile );
+            assertEquals( expected, actual );
+        }
+        catch ( Exception e ) {
+            logger.error( "failed for {}: {}", filename, e );
+            logger.debug( "failed:", e );
+            fail( e.getMessage() );
+        }
+        finally {
+            IOUtils.deleteFiles( toFile );
+        }
+    }
+
+    @Test
     public void testCopyToFile() {
         String fromFilename = "expected.txt";
         File fromFile = new File( dir, fromFilename );
@@ -79,7 +100,36 @@ public class ScpFileTest extends ScpTestBase {
             logger.debug( "failed:", e );
             fail( e.getMessage() );
         }
-        IOUtils.deleteFiles( fromFile );
+        finally {
+            IOUtils.deleteFiles( fromFile );
+        }
+    }
+
+    @Test
+    public void testCopyToScpFile() {
+        String fromFilename = "expected.txt";
+        File fromFile = new File( dir, fromFilename );
+        Session toSession = null;
+        try {
+            toSession = sessionFactory.getSession( username, hostname, port );
+            IOUtils.writeFile( fromFile, expected, UTF8 );
+            ScpFile from = new ScpFile( session, scpPath, rootDir, fromFilename );
+            ScpFile to = new ScpFile( toSession, scpPath, rootDir, filename );
+            from.copyTo( to );
+            String actual = IOUtils.readFile( file, UTF8 );
+            assertEquals( expected, actual );
+        }
+        catch ( Exception e ) {
+            logger.error( "failed for {}: {}", filename, e );
+            logger.debug( "failed:", e );
+            fail( e.getMessage() );
+        }
+        finally {
+            if ( toSession != null && toSession.isConnected() ) {
+                toSession.disconnect();
+            }
+            IOUtils.deleteFiles( fromFile );
+        }
     }
 
     @Test

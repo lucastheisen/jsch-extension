@@ -50,7 +50,7 @@ public class ScpConnection {
         String command = getCommand( path, scpMode, copyMode );
         channel = session.openChannel( "exec" );
         logger.debug( "setting exec command to '{}'", command );
-        ((ChannelExec) channel).setCommand( command );
+        ((ChannelExec)channel).setCommand( command );
 
         outputStream = channel.getOutputStream();
         inputStream = channel.getInputStream();
@@ -106,7 +106,7 @@ public class ScpConnection {
             StringBuilder sb = new StringBuilder();
             int c;
             while ( (c = inputStream.read()) != '\n' ) {
-                sb.append( (char) c );
+                sb.append( (char)c );
             }
             if ( b == 1 || b == 2 ) {
                 throw new JSchIOException( sb.toString() );
@@ -169,7 +169,7 @@ public class ScpConnection {
             return null;
         }
         CurrentEntry currentEntry = entryStack.peek();
-        return (currentEntry instanceof InputStream) ? (InputStream) currentEntry : null;
+        return (currentEntry instanceof InputStream) ? (InputStream)currentEntry : null;
     }
 
     public OutputStream getCurrentOuputStream() {
@@ -177,7 +177,7 @@ public class ScpConnection {
             return null;
         }
         CurrentEntry currentEntry = entryStack.peek();
-        return (currentEntry instanceof OutputStream) ? (OutputStream) currentEntry : null;
+        return (currentEntry instanceof OutputStream) ? (OutputStream)currentEntry : null;
     }
 
     public ScpEntry getNextEntry() throws IOException {
@@ -214,16 +214,20 @@ public class ScpConnection {
      *     End Directory: E
      * </pre>
      * 
-     * @return An ScpEntry for a file (C) or directory (D) or null for end of
-     *         directory (E)
+     * @return An ScpEntry for a file (C), directory (D), end of directory (E),
+     *         or null when no more messages are available.
      * @throws IOException
      */
     private ScpEntry parseMessage() throws IOException {
-        char type = (char) checkAck();
+        int ack = checkAck();
+        if ( ack == -1 ) return null; // end of stream
+
+        char type = (char)ack;
 
         ScpEntry scpEntry = null;
         if ( type == 'E' ) {
             scpEntry = ScpEntry.newEndOfDirectory();
+            readMessageSegment(); // read and discard the \n
         }
         else if ( type == 'C' || type == 'D' ) {
             String mode = readMessageSegment();
@@ -240,6 +244,7 @@ public class ScpConnection {
         else {
             throw new UnsupportedOperationException( "unknown protocol message type " + type );
         }
+
         logger.debug( "read '{}'", scpEntry );
         return scpEntry;
     }
@@ -283,7 +288,7 @@ public class ScpConnection {
         byte[] buffer = new byte[1024];
         int bytesRead = 0;
         for ( ;; bytesRead++ ) {
-            byte b = (byte) inputStream.read();
+            byte b = (byte)inputStream.read();
             if ( b == -1 ) return null; // end of stream
             if ( b == ' ' || b == '\n' ) break;
             buffer[bytesRead] = b;
@@ -293,7 +298,7 @@ public class ScpConnection {
 
     private void writeAck() throws IOException {
         logger.debug( "writing ack" );
-        outputStream.write( (byte) 0 );
+        outputStream.write( (byte)0 );
         outputStream.flush();
     }
 
@@ -416,7 +421,7 @@ public class ScpConnection {
                     throw new IOException( "stream not finished ("
                             + ioCount + "!=" + entry.getSize() + ")" );
                 }
-                writeMessage( (byte) 0 );
+                writeMessage( (byte)0 );
                 this.closed = true;
             }
         }

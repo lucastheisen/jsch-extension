@@ -69,26 +69,26 @@ public class ScpFile {
             int otherPerm = Character.getNumericValue( mode.charAt( 3 ) );
             if ( (userPerm & 1) == 1 ) {
                 if ( (otherPerm & 1) == 1 ) {
-                    file.setExecutable( true, true );
+                    file.setExecutable( true, false );
                 }
                 else {
-                    file.setExecutable( true, false );
+                    file.setExecutable( true, true );
                 }
             }
             if ( (userPerm & 2) == 2 ) {
                 if ( (otherPerm & 2) == 2 ) {
-                    file.setWritable( true, true );
+                    file.setWritable( true, false );
                 }
                 else {
-                    file.setWritable( true, false );
+                    file.setWritable( true, true );
                 }
             }
             if ( (userPerm & 4) == 4 ) {
                 if ( (otherPerm & 4) == 4 ) {
-                    file.setReadable( true, true );
+                    file.setReadable( true, false );
                 }
                 else {
-                    file.setReadable( true, false );
+                    file.setReadable( true, true );
                 }
             }
 
