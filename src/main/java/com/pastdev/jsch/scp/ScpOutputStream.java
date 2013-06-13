@@ -27,18 +27,21 @@ public class ScpOutputStream extends OutputStream {
     private ScpConnection connection;
     private OutputStream outputStream;
 
-    public ScpOutputStream( Session session, String path, ScpMode scpMode, CopyMode copyMode ) throws JSchException, IOException {
-        logger.debug( "Opening ScpOutputStream" );
-        this.connection = new ScpConnection( session, path, scpMode, copyMode );
+    public ScpOutputStream( Session session, String path, CopyMode copyMode ) throws JSchException, IOException {
+        if ( logger.isDebugEnabled() ) {
+            logger.debug( "Opening ScpOutputStream to {}@{}:{}", 
+                    new Object[] { session.getUserName(), session.getHost(), path } );
+        }
+        this.connection = new ScpConnection( session, path, ScpMode.TO, copyMode );
     }
-    
+
     @Override
     public void close() throws IOException {
         logger.debug( "Closing ScpOutputStream" );
         connection.close();
         outputStream = null;
     }
-    
+
     public void closeEntry() throws IOException {
         connection.closeEntry();
         outputStream = null;
@@ -58,7 +61,7 @@ public class ScpOutputStream extends OutputStream {
         connection.putNextEntry( entry );
         outputStream = connection.getCurrentOuputStream();
     }
-    
+
     @Override
     public void write( int b ) throws IOException {
         if ( outputStream == null ) {

@@ -97,24 +97,23 @@ public class ScpConnection {
      * Also throws, IOException if unable to read from the InputStream. If
      * nothing was thrown, ack was a success.
      */
-    private void checkAck() throws IOException {
+    private int checkAck() throws IOException {
         logger.trace( "wait for ack" );
         int b = inputStream.read();
         logger.debug( "ack response: '{}'", b );
-
-        if ( b == 0 ) return;
 
         if ( b == 1 || b == 2 ) {
             StringBuilder sb = new StringBuilder();
             int c;
             while ( (c = inputStream.read()) != '\n' ) {
-                c = inputStream.read();
                 sb.append( (char) c );
             }
             if ( b == 1 || b == 2 ) {
                 throw new JSchIOException( sb.toString() );
             }
         }
+
+        return b;
     }
 
     public void close() throws IOException {
@@ -220,31 +219,26 @@ public class ScpConnection {
      * @throws IOException
      */
     private ScpEntry parseMessage() throws IOException {
-        String typeAndMode = readMessageSegment();
-        if ( typeAndMode == null ) return null;
-        char type = typeAndMode.charAt( 0 );
+        char type = (char) checkAck();
+
         ScpEntry scpEntry = null;
         if ( type == 'E' ) {
             scpEntry = ScpEntry.newEndOfDirectory();
         }
-        else {
-            String mode = typeAndMode.substring( 1 );
+        else if ( type == 'C' || type == 'D' ) {
+            String mode = readMessageSegment();
             String sizeString = readMessageSegment();
             if ( sizeString == null ) return null;
             long size = Long.parseLong( sizeString );
             String name = readMessageSegment();
             if ( name == null ) return null;
 
-            switch ( type ) {
-                case 'C':
-                    scpEntry = ScpEntry.newFile( name, size, mode );
-                    break;
-                case 'D':
-                    scpEntry = ScpEntry.newDirectory( name, mode );
-                    break;
-                default:
-                    throw new UnsupportedOperationException( "unknown protocol message type " + type );
-            }
+            scpEntry = type == 'C'
+                    ? ScpEntry.newFile( name, size, mode )
+                    : ScpEntry.newDirectory( name, mode );
+        }
+        else {
+            throw new UnsupportedOperationException( "unknown protocol message type " + type );
         }
         logger.debug( "read '{}'", scpEntry );
         return scpEntry;
