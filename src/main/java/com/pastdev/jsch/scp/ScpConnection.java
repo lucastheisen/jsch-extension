@@ -1,6 +1,7 @@
 package com.pastdev.jsch.scp;
 
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -27,7 +28,7 @@ import com.pastdev.jsch.JSchIOException;
  * @author LTHEISEN
  * 
  */
-public class ScpConnection {
+public class ScpConnection implements Closeable {
     private static Logger logger = LoggerFactory.getLogger( ScpConnection.class );
     private static final Charset US_ASCII = Charset.forName( "US-ASCII" );
 

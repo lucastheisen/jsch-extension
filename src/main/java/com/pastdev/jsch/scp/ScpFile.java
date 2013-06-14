@@ -9,6 +9,7 @@ import java.io.IOException;
 
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
+import com.pastdev.jsch.DestinationOs;
 import com.pastdev.jsch.IOUtils;
 
 
@@ -151,27 +152,5 @@ public class ScpFile {
 
     String getPath() {
         return os.joinPath( path, 0, path.length );
-    }
-
-    public static enum DestinationOs {
-        UNIX('/'),
-        WINDOWS('\\');
-
-        private char separator;
-
-        private DestinationOs( char separator ) {
-            this.separator = separator;
-        }
-
-        public String joinPath( String[] parts, int start, int count ) {
-            StringBuilder builder = new StringBuilder();
-            for ( int i = start, end = start + count; i < end; i++ ) {
-                if ( i > start ) {
-                    builder.append( separator );
-                }
-                builder.append( parts[i] );
-            }
-            return builder.toString();
-        }
     }
 }

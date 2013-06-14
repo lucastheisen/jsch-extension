@@ -1,4 +1,4 @@
-package com.pastdev.jsch;
+package com.pastdev.jsch.scp;
 
 
 import java.io.IOException;
@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 
 import com.jcraft.jsch.JSchException;
+import com.pastdev.jsch.SessionFactory;
 
 
 public class ScpTestBase {

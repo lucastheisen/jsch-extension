@@ -23,20 +23,28 @@ public class IOUtils {
     private static Logger logger = LoggerFactory.getLogger( IOUtils.class );
 
     public static void closeAndIgnoreException( Closeable closeable ) {
-        try {
-            closeable.close();
+        if ( closeable != null ) {
+            try {
+                closeable.close();
+            }
+            catch ( IOException e ) {
+            }
         }
-        catch ( IOException e ) {}
     }
 
     public static void closeAndLogException( Closeable closeable ) {
-        try {
-            closeable.close();
+        if ( closeable == null ) {
+            logger.debug( "closeable was null" );
         }
-        catch ( IOException e ) {
-            if ( logger != null ) {
-                logger.error( "failed to close InputStream: {}", e.getMessage() );
-                logger.debug( "failed to close InputStream:", e );
+        else {
+            try {
+                closeable.close();
+            }
+            catch ( IOException e ) {
+                if ( logger != null ) {
+                    logger.error( "failed to close InputStream: {}", e.getMessage() );
+                    logger.debug( "failed to close InputStream:", e );
+                }
             }
         }
     }
@@ -78,7 +86,7 @@ public class IOUtils {
         }
         return builder.toString();
     }
-    
+
     public static void deleteFiles( File... files ) {
         for ( File file : files ) {
             file.delete();
@@ -88,7 +96,7 @@ public class IOUtils {
     public static String readFile( File file ) throws IOException {
         return readFile( file, Charset.defaultCharset() );
     }
-    
+
     public static String readFile( File file, Charset charset ) throws IOException {
         String contents = null;
         InputStream from = null;
@@ -105,7 +113,7 @@ public class IOUtils {
     public static void writeFile( File file, String contents ) throws IOException {
         writeFile( file, contents, Charset.defaultCharset() );
     }
-    
+
     public static void writeFile( File file, String contents, Charset charset ) throws IOException {
         OutputStream outputStream = null;
         try {

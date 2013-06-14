@@ -1,4 +1,4 @@
-package com.pastdev.jsch;
+package com.pastdev.jsch.scp;
 
 
 import static org.junit.Assert.assertTrue;
@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 
 import com.jcraft.jsch.Session;
+import com.pastdev.jsch.IOUtils;
 import com.pastdev.jsch.scp.CopyMode;
 import com.pastdev.jsch.scp.ScpEntry;
 import com.pastdev.jsch.scp.ScpInputStream;

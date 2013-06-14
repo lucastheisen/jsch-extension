@@ -1,4 +1,4 @@
-package com.pastdev.jsch;
+package com.pastdev.jsch.scp;
 
 
 import static org.junit.Assert.assertEquals;
@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 
 import com.jcraft.jsch.Session;
+import com.pastdev.jsch.IOUtils;
 import com.pastdev.jsch.scp.ScpFile;
 import com.pastdev.jsch.scp.ScpFileInputStream;
 import com.pastdev.jsch.scp.ScpFileOutputStream;
