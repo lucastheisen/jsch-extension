@@ -9,9 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-import com.jcraft.jsch.ConfigRepository;
 import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.OpenSSHConfig;
 import com.jcraft.jsch.Session;
 
 

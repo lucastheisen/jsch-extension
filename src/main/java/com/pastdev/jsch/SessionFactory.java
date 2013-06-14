@@ -6,6 +6,7 @@ import java.util.List;
 
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.Proxy;
 import com.jcraft.jsch.Session;
 
 
@@ -35,6 +36,12 @@ public class SessionFactory {
 
     public Session getSession( String username, String host, int port ) throws JSchException {
         return jsch.getSession( username, host, port );
+    }
+    
+    public Session getSession( String username, String host, int port, Proxy proxy ) throws JSchException {
+        Session session = getSession( username, host, port );
+        session.setProxy( proxy );
+        return session;
     }
 
     public void setIdentityFromPrivateKey( String privateKey ) throws JSchException {

@@ -28,17 +28,16 @@ import org.slf4j.LoggerFactory;
 import com.jcraft.jsch.JSchException;
 import com.pastdev.jsch.IOUtils;
 import com.pastdev.jsch.SessionFactory;
-import com.pastdev.jsch.scp.ScpTestBase;
 
 
 public class TunnelConnectionTest {
-    private static Logger logger = LoggerFactory.getLogger( ScpTestBase.class );
-    protected static final Charset UTF8 = Charset.forName( "UTF-8" );
-    protected static SessionFactory sessionFactory;
-    protected static Properties properties;
-    protected static String username;
-    protected static String hostname;
-    protected static int port;
+    private static Logger logger = LoggerFactory.getLogger( TunnelConnectionTest.class );
+    private static final Charset UTF8 = Charset.forName( "UTF-8" );
+    private static SessionFactory sessionFactory;
+    private static Properties properties;
+    private static String username;
+    private static String hostname;
+    private static int port;
 
     private String expected = "This will be amazing if it works";
     private StringBuffer serviceBuffer;
