@@ -13,6 +13,12 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
+  
+  <scm>
+    <connection>scm:git:git://github.com/lucastheisen/jsch-extension.git</connection>
+    <developerConnection>scm:git:git@github.com:lucastheisen/jsch-extension.git</developerConnection>
+    <url>http://github.com/lucastheisen/jsch-extension</url>
+  </scm>
 
   <dependencies>
     <dependency>
