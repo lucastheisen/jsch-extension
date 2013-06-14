@@ -161,7 +161,7 @@ public class TunnelConnectionTest {
         final int tunnelPort = 60001;
         TunnelConnection tunnelConnection = null;
         try {
-            tunnelConnection = new TunnelConnection( sessionFactory.getSession( username, hostname, port ),
+            tunnelConnection = new TunnelConnection( sessionFactory.newSession( username, hostname, port ),
                     tunnelPort, "localhost", servicePort );
             tunnelConnection.open();
 

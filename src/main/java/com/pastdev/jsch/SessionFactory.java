@@ -16,7 +16,7 @@ import com.jcraft.jsch.Session;
  * @author Lucas Theisen
  */
 public class SessionFactory {
-    private static final int DEFAULT_PORT = 22;
+    public static final int SSH_PORT = 22;
     
     private JSch jsch;
     private String username;
@@ -26,20 +26,20 @@ public class SessionFactory {
         jsch = new JSch();
     }
     
-    public Session getSession( String host ) throws JSchException {
-        return getSession( username, host, DEFAULT_PORT );
+    public Session newSession( String host ) throws JSchException {
+        return newSession( username, host, SSH_PORT );
     }
     
-    public Session getSession( String host, int port ) throws JSchException {
-        return getSession( username, host, port );
+    public Session newSession( String host, int port ) throws JSchException {
+        return newSession( username, host, port );
     }
 
-    public Session getSession( String username, String host, int port ) throws JSchException {
+    public Session newSession( String username, String host, int port ) throws JSchException {
         return jsch.getSession( username, host, port );
     }
     
-    public Session getSession( String username, String host, int port, Proxy proxy ) throws JSchException {
-        Session session = getSession( username, host, port );
+    public Session newSession( String username, String host, int port, Proxy proxy ) throws JSchException {
+        Session session = newSession( username, host, port );
         session.setProxy( proxy );
         return session;
     }

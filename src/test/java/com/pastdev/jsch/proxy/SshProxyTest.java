@@ -86,8 +86,8 @@ public class SshProxyTest {
         Session session = null;
         Channel channel = null;
         try {
-            proxy = new SshProxy( sessionFactory.getSession( username, "localhost", 22 ) );
-            session = sessionFactory.getSession( username, hostname, port, proxy );
+            proxy = new SshProxy( sessionFactory.newSession( username, "localhost", 22 ) );
+            session = sessionFactory.newSession( username, hostname, port, proxy );
 
             session.connect();
 

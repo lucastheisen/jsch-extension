@@ -75,7 +75,7 @@ public class ScpStreamTest extends ScpTestBase {
         file3 = new File( dir1, file3Name );
 
         try {
-            session = sessionFactory.getSession( username, hostname, port );
+            session = sessionFactory.newSession( username, hostname, port );
         }
         catch ( Exception e ) {
             logger.error( "failed to initialize session for {}@{}: {}",

@@ -55,7 +55,7 @@ public class ScpFileTest extends ScpTestBase {
         file = new File( dir, filename );
 
         try {
-            session = sessionFactory.getSession( username, hostname, port );
+            session = sessionFactory.newSession( username, hostname, port );
         }
         catch ( Exception e ) {
             logger.error( "failed for {}: {}", filename, e );
@@ -112,7 +112,7 @@ public class ScpFileTest extends ScpTestBase {
         File fromFile = new File( dir, fromFilename );
         Session toSession = null;
         try {
-            toSession = sessionFactory.getSession( username, hostname, port );
+            toSession = sessionFactory.newSession( username, hostname, port );
             IOUtils.writeFile( fromFile, expected, UTF8 );
             ScpFile from = new ScpFile( session, scpPath, rootDir, fromFilename );
             ScpFile to = new ScpFile( toSession, scpPath, rootDir, filename );
