@@ -10,6 +10,10 @@ public enum DestinationOs {
         this.separator = separator;
     }
 
+    public String joinPath( String[] parts ) {
+        return joinPath( parts, 0, parts.length );
+    }
+
     public String joinPath( String[] parts, int start, int count ) {
         StringBuilder builder = new StringBuilder();
         for ( int i = start, end = start + count; i < end; i++ ) {

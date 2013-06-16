@@ -13,6 +13,10 @@ public class JSchIOException extends IOException {
     public JSchIOException( JSchException e ) {
         super( e );
     }
+
+    public JSchIOException( IOException e ) {
+        super( e );
+    }
     
     public JSchIOException( String message ) {
         super( new JSchException( message ) );

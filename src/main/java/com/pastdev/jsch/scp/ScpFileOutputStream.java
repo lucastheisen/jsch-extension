@@ -6,14 +6,14 @@ import java.io.OutputStream;
 
 
 import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.Session;
+import com.pastdev.jsch.SessionFactory;
 
 
 public class ScpFileOutputStream extends OutputStream {
     private ScpOutputStream outputStream;
 
-    ScpFileOutputStream( Session session, String directory, ScpEntry scpEntry ) throws JSchException, IOException {
-        this.outputStream = new ScpOutputStream( session, directory, CopyMode.FILE_ONLY );
+    ScpFileOutputStream( SessionFactory sessionFactory, String directory, ScpEntry scpEntry ) throws JSchException, IOException {
+        this.outputStream = new ScpOutputStream( sessionFactory, directory, CopyMode.FILE_ONLY );
         this.outputStream.putNextEntry( scpEntry );
     }
 

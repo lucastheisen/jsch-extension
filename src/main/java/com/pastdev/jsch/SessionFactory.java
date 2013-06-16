@@ -1,66 +1,60 @@
 package com.pastdev.jsch;
 
 
-import java.util.List;
-
-
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Proxy;
 import com.jcraft.jsch.Session;
 
 
-/**
- * Similar to JSch, but with methods friendlier to dependency injection.
- * 
- * @author Lucas Theisen
- */
-public class SessionFactory {
+public interface SessionFactory {
     public static final int SSH_PORT = 22;
-    
-    private JSch jsch;
-    private String username;
 
-    public SessionFactory() {
-        JSch.setLogger( new Slf4jBridge() );
-        jsch = new JSch();
-    }
+    public String getHostname();
     
-    public Session newSession( String host ) throws JSchException {
-        return newSession( username, host, SSH_PORT );
-    }
+    public int getPort();
     
-    public Session newSession( String host, int port ) throws JSchException {
-        return newSession( username, host, port );
-    }
-
-    public Session newSession( String username, String host, int port ) throws JSchException {
-        return jsch.getSession( username, host, port );
-    }
+    public String getUsername();
     
-    public Session newSession( String username, String host, int port, Proxy proxy ) throws JSchException {
-        Session session = newSession( username, host, port );
-        session.setProxy( proxy );
-        return session;
-    }
+    public Session newSession() throws JSchException;
 
-    public void setIdentityFromPrivateKey( String privateKey ) throws JSchException {
-        jsch.removeAllIdentity();
-        jsch.addIdentity( privateKey );
-    }
+    public SessionFactoryBuilder newSessionFactoryBuilder() throws JSchException;
 
-    public void setIdentitiesFromPrivateKeys( List<String> privateKeys ) throws JSchException {
-        jsch.removeAllIdentity();
-        for ( String privateKey : privateKeys ) {
-            jsch.addIdentity( privateKey );
+    abstract public class SessionFactoryBuilder {
+        protected String hostname;
+        protected JSch jsch;
+        protected int port;
+        protected Proxy proxy;
+        protected String username;
+
+        protected SessionFactoryBuilder( JSch jsch, String username, String hostname, int port, Proxy proxy ) {
+            this.jsch = jsch;
+            this.username = username;
+            this.hostname = hostname;
+            this.port = port;
+            this.proxy = proxy;
         }
-    }
-    
-    public void setKnownHosts( String knownHosts ) throws JSchException {
-        jsch.setKnownHosts( knownHosts );
-    }
-    
-    public void setUsername( String username ) {
-        this.username = username;
+
+        public SessionFactoryBuilder setHostname( String hostname ) {
+            this.hostname = hostname;
+            return this;
+        }
+        
+        public SessionFactoryBuilder setPort( int port ) {
+            this.port = port;
+            return this;
+        }
+        
+        public SessionFactoryBuilder setProxy( Proxy proxy ) {
+            this.proxy = proxy;
+            return this;
+        }
+        
+        public SessionFactoryBuilder setUsername( String username ) {
+            this.username = username;
+            return this;
+        }
+        
+        abstract public SessionFactory build();
     }
 }

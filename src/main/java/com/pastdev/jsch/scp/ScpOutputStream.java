@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 
 
 import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.Session;
+import com.pastdev.jsch.SessionFactory;
 
 
 /**
@@ -27,12 +27,9 @@ public class ScpOutputStream extends OutputStream {
     private ScpConnection connection;
     private OutputStream outputStream;
 
-    public ScpOutputStream( Session session, String path, CopyMode copyMode ) throws JSchException, IOException {
-        if ( logger.isDebugEnabled() ) {
-            logger.debug( "Opening ScpOutputStream to {}@{}:{}", 
-                    new Object[] { session.getUserName(), session.getHost(), path } );
-        }
-        this.connection = new ScpConnection( session, path, ScpMode.TO, copyMode );
+    public ScpOutputStream( SessionFactory sessionFactory, String path, CopyMode copyMode ) throws JSchException, IOException {
+        logger.debug( "Opening ScpOutputStream to {} {}", sessionFactory, path );
+        this.connection = new ScpConnection( sessionFactory, path, ScpMode.TO, copyMode );
     }
 
     @Override

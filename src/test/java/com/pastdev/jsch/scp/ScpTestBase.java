@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 
 import com.jcraft.jsch.JSchException;
+import com.pastdev.jsch.DefaultSessionFactory;
 import com.pastdev.jsch.SessionFactory;
 
 
@@ -26,9 +27,6 @@ public class ScpTestBase {
     protected static Properties properties;
     protected static String scpPath;
     protected static String filesystemPath;
-    protected static String username;
-    protected static String hostname;
-    protected static int port;
 
     @BeforeClass
     public static void initializeClass() {
@@ -60,18 +58,19 @@ public class ScpTestBase {
         String privateKey = properties.getProperty( "ssh.privateKey" );
         scpPath = properties.getProperty( "scp.out.test.scpPath" );
         filesystemPath = properties.getProperty( "scp.out.test.filesystemPath" );
-        username = properties.getProperty( "scp.out.test.username" );
-        hostname = "localhost";
-        port = Integer.parseInt( properties.getProperty( "scp.out.test.port" ) );
+        String username = properties.getProperty( "scp.out.test.username" );
+        String hostname = "localhost";
+        int port = Integer.parseInt( properties.getProperty( "scp.out.test.port" ) );
 
-        sessionFactory = new SessionFactory();
+        DefaultSessionFactory defaultSessionFactory = new DefaultSessionFactory( username, hostname, port );
         try {
-            sessionFactory.setKnownHosts( knownHosts );
-            sessionFactory.setIdentityFromPrivateKey( privateKey );
+            defaultSessionFactory.setKnownHosts( knownHosts );
+            defaultSessionFactory.setIdentityFromPrivateKey( privateKey );
         }
         catch ( JSchException e ) {
             Assume.assumeNoException( e );
         }
+        sessionFactory = defaultSessionFactory;
     }
 
     @Before

@@ -8,22 +8,22 @@ import java.io.IOException;
 
 
 import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.Session;
 import com.pastdev.jsch.DestinationOs;
 import com.pastdev.jsch.IOUtils;
+import com.pastdev.jsch.SessionFactory;
 
 
 public class ScpFile {
     private DestinationOs os;
     private String[] path;
-    private Session session;
+    private SessionFactory sessionFactory;
 
-    public ScpFile( Session session, String... path ) {
-        this( session, DestinationOs.UNIX, path );
+    public ScpFile( SessionFactory sessionFactory, String... path ) {
+        this( sessionFactory, DestinationOs.UNIX, path );
     }
 
-    public ScpFile( Session session, DestinationOs os, String... path ) {
-        this.session = session;
+    public ScpFile( SessionFactory sessionFactory, DestinationOs os, String... path ) {
+        this.sessionFactory = sessionFactory;
         this.os = os;
         this.path = path;
     }
@@ -65,7 +65,7 @@ public class ScpFile {
             }
             to = new FileOutputStream( file );
 
-            // attempt to set file mode...  flakey in java 6 and below
+            // attempt to set file mode... flakey in java 6 and below
             int userPerm = Character.getNumericValue( mode.charAt( 1 ) );
             int otherPerm = Character.getNumericValue( mode.charAt( 3 ) );
             if ( (userPerm & 1) == 1 ) {
@@ -127,7 +127,7 @@ public class ScpFile {
     }
 
     public ScpFileInputStream getInputStream() throws JSchException, IOException {
-        return new ScpFileInputStream( session, getPath() );
+        return new ScpFileInputStream( sessionFactory, getPath() );
     }
 
     public ScpFileOutputStream getOutputStream( long size ) throws JSchException, IOException {
@@ -139,7 +139,7 @@ public class ScpFile {
     }
 
     private ScpFileOutputStream getOutputStream( ScpEntry scpEntry ) throws JSchException, IOException {
-        return new ScpFileOutputStream( session, getDirectory(), scpEntry );
+        return new ScpFileOutputStream( sessionFactory, getDirectory(), scpEntry );
     }
 
     String getDirectory() {

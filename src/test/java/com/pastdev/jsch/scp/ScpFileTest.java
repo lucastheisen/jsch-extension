@@ -20,9 +20,6 @@ import org.slf4j.LoggerFactory;
 
 import com.jcraft.jsch.Session;
 import com.pastdev.jsch.IOUtils;
-import com.pastdev.jsch.scp.ScpFile;
-import com.pastdev.jsch.scp.ScpFileInputStream;
-import com.pastdev.jsch.scp.ScpFileOutputStream;
 
 
 public class ScpFileTest extends ScpTestBase {
@@ -33,14 +30,9 @@ public class ScpFileTest extends ScpTestBase {
     private File file;
     private String filename;
     private String rootDir;
-    private Session session;
 
     @After
     public void after() {
-        if ( session != null && session.isConnected() ) {
-            session.disconnect();
-        }
-
         IOUtils.deleteFiles( file, dir );
     }
 
@@ -53,15 +45,6 @@ public class ScpFileTest extends ScpTestBase {
         logger.debug( "{} created dir {}", dir.exists() ? "succesfully" : "failed to", dir );
         filename = UUID.randomUUID().toString() + ".txt";
         file = new File( dir, filename );
-
-        try {
-            session = sessionFactory.newSession( username, hostname, port );
-        }
-        catch ( Exception e ) {
-            logger.error( "failed for {}: {}", filename, e );
-            logger.debug( "failed:", e );
-            fail( e.getMessage() );
-        }
     }
 
     @Test
@@ -70,7 +53,7 @@ public class ScpFileTest extends ScpTestBase {
         File toFile = new File( dir, toFilename );
         try {
             IOUtils.writeFile( file, expected, UTF8 );
-            ScpFile to = new ScpFile( session, scpPath, rootDir, toFilename );
+            ScpFile to = new ScpFile( sessionFactory, scpPath, rootDir, toFilename );
             to.copyFrom( file );
             String actual = IOUtils.readFile( toFile );
             assertEquals( expected, actual );
@@ -91,7 +74,7 @@ public class ScpFileTest extends ScpTestBase {
         File fromFile = new File( dir, fromFilename );
         try {
             IOUtils.writeFile( fromFile, expected, UTF8 );
-            ScpFile from = new ScpFile( session, scpPath, rootDir, fromFilename );
+            ScpFile from = new ScpFile( sessionFactory, scpPath, rootDir, fromFilename );
             from.copyTo( file );
             String actual = IOUtils.readFile( file, UTF8 );
             assertEquals( expected, actual );
@@ -112,10 +95,9 @@ public class ScpFileTest extends ScpTestBase {
         File fromFile = new File( dir, fromFilename );
         Session toSession = null;
         try {
-            toSession = sessionFactory.newSession( username, hostname, port );
             IOUtils.writeFile( fromFile, expected, UTF8 );
-            ScpFile from = new ScpFile( session, scpPath, rootDir, fromFilename );
-            ScpFile to = new ScpFile( toSession, scpPath, rootDir, filename );
+            ScpFile from = new ScpFile( sessionFactory, scpPath, rootDir, fromFilename );
+            ScpFile to = new ScpFile( sessionFactory, scpPath, rootDir, filename );
             from.copyTo( to );
             String actual = IOUtils.readFile( file, UTF8 );
             assertEquals( expected, actual );
@@ -139,7 +121,7 @@ public class ScpFileTest extends ScpTestBase {
             ScpFileInputStream scpFileInputStream = null;
             try {
                 IOUtils.writeFile( file, expected );
-                ScpFile scpFile = new ScpFile( session, scpPath, rootDir, filename );
+                ScpFile scpFile = new ScpFile( sessionFactory, scpPath, rootDir, filename );
                 scpFileInputStream = scpFile.getInputStream();
                 String actual = IOUtils.copyToString( scpFileInputStream, UTF8 );
 
@@ -169,7 +151,7 @@ public class ScpFileTest extends ScpTestBase {
         try {
             ScpFileOutputStream outputStream = null;
             try {
-                ScpFile scpFile = new ScpFile( session, scpPath, rootDir, filename );
+                ScpFile scpFile = new ScpFile( sessionFactory, scpPath, rootDir, filename );
                 outputStream = scpFile.getOutputStream( expected.length() );
                 IOUtils.copyFromString( expected, UTF8, outputStream );
             }

@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 
 
 import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.Session;
+import com.pastdev.jsch.SessionFactory;
 
 
 public class ScpInputStream extends InputStream {
@@ -19,9 +19,9 @@ public class ScpInputStream extends InputStream {
     private ScpConnection connection;
     private InputStream inputStream;
 
-    public ScpInputStream( Session session, String path, CopyMode copyMode ) throws JSchException, IOException {
+    public ScpInputStream( SessionFactory sessionFactory, String path, CopyMode copyMode ) throws JSchException, IOException {
         logger.debug( "Opening ScpInputStream" );
-        this.connection = new ScpConnection( session, path, ScpMode.FROM, copyMode );
+        this.connection = new ScpConnection( sessionFactory, path, ScpMode.FROM, copyMode );
     }
 
     @Override

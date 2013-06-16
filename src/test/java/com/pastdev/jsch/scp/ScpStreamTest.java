@@ -75,11 +75,10 @@ public class ScpStreamTest extends ScpTestBase {
         file3 = new File( dir1, file3Name );
 
         try {
-            session = sessionFactory.newSession( username, hostname, port );
+            session = sessionFactory.newSession();
         }
         catch ( Exception e ) {
-            logger.error( "failed to initialize session for {}@{}: {}",
-                    new Object[] { username, hostname, e } );
+            logger.error( "failed to initialize session from factory {}: {}", sessionFactory, e );
             logger.debug( "failed:", e );
             fail( e.getMessage() );
         }
@@ -116,7 +115,7 @@ public class ScpStreamTest extends ScpTestBase {
 
         ScpInputStream inputStream = null;
         try {
-            inputStream = new ScpInputStream( session, joinPath( scpPath, dir1Name, "*" ), CopyMode.RECURSIVE );
+            inputStream = new ScpInputStream( sessionFactory, joinPath( scpPath, dir1Name, "*" ), CopyMode.RECURSIVE );
             Map<String, String> fileNameToContents = new HashMap<String, String>();
             List<String> dirs = new ArrayList<String>();
             while ( true ) {
@@ -153,7 +152,7 @@ public class ScpStreamTest extends ScpTestBase {
     public void testOutputStream() {
         ScpOutputStream outputStream = null;
         try {
-            outputStream = new ScpOutputStream( session, joinPath( scpPath, dir1Name ), CopyMode.RECURSIVE );
+            outputStream = new ScpOutputStream( sessionFactory, joinPath( scpPath, dir1Name ), CopyMode.RECURSIVE );
 
             outputStream.putNextEntry( file1Name, expected1.length() );
             outputStream.write( expected1.getBytes( UTF8 ) );

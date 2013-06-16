@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 
 
 import com.jcraft.jsch.JSchException;
+import com.pastdev.jsch.DefaultSessionFactory;
 import com.pastdev.jsch.IOUtils;
 import com.pastdev.jsch.SessionFactory;
 
@@ -35,9 +36,6 @@ public class TunnelConnectionTest {
     private static final Charset UTF8 = Charset.forName( "UTF-8" );
     private static SessionFactory sessionFactory;
     private static Properties properties;
-    private static String username;
-    private static String hostname;
-    private static int port;
 
     private String expected = "This will be amazing if it works";
     private StringBuffer serviceBuffer;
@@ -79,18 +77,19 @@ public class TunnelConnectionTest {
 
         String knownHosts = properties.getProperty( "ssh.knownHosts" );
         String privateKey = properties.getProperty( "ssh.privateKey" );
-        username = properties.getProperty( "scp.out.test.username" );
-        hostname = "localhost";
-        port = Integer.parseInt( properties.getProperty( "scp.out.test.port" ) );
+        String username = properties.getProperty( "scp.out.test.username" );
+        String hostname = "localhost";
+        int port = Integer.parseInt( properties.getProperty( "scp.out.test.port" ) );
 
-        sessionFactory = new SessionFactory();
+        DefaultSessionFactory defaultSessionFactory = new DefaultSessionFactory( username, hostname, port );
         try {
-            sessionFactory.setKnownHosts( knownHosts );
-            sessionFactory.setIdentityFromPrivateKey( privateKey );
+            defaultSessionFactory.setKnownHosts( knownHosts );
+            defaultSessionFactory.setIdentityFromPrivateKey( privateKey );
         }
         catch ( JSchException e ) {
             Assume.assumeNoException( e );
         }
+        sessionFactory = defaultSessionFactory;
     }
 
     @After
@@ -161,7 +160,7 @@ public class TunnelConnectionTest {
         final int tunnelPort = 60001;
         TunnelConnection tunnelConnection = null;
         try {
-            tunnelConnection = new TunnelConnection( sessionFactory.newSession( username, hostname, port ),
+            tunnelConnection = new TunnelConnection( sessionFactory.newSession(),
                     tunnelPort, "localhost", servicePort );
             tunnelConnection.open();
 

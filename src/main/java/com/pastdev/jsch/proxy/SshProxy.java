@@ -11,9 +11,11 @@ import org.slf4j.LoggerFactory;
 
 
 import com.jcraft.jsch.Channel;
+import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Proxy;
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SocketFactory;
+import com.pastdev.jsch.SessionFactory;
 
 
 public class SshProxy implements Proxy {
@@ -24,8 +26,8 @@ public class SshProxy implements Proxy {
     private OutputStream outputStream;
     private Session session;
 
-    public SshProxy( Session session ) {
-        this.session = session;
+    public SshProxy( SessionFactory sessionFactory ) throws JSchException {
+        this.session = sessionFactory.newSession();
     }
 
     public void close() {
@@ -56,8 +58,8 @@ public class SshProxy implements Proxy {
     public Socket getSocket() {
         return null;
     }
-    
-    @Override 
+
+    @Override
     public String toString() {
         return "ssh proxy " + session.getUserName() + "@" + session.getHost() + " on port " + session.getPort();
     }

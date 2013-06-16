@@ -18,6 +18,7 @@ import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import com.pastdev.jsch.JSchIOException;
+import com.pastdev.jsch.SessionFactory;
 
 
 /**
@@ -38,12 +39,8 @@ public class ScpConnection implements Closeable {
     private OutputStream outputStream;
     private Session session;
 
-    public ScpConnection( Session session, String path, ScpMode scpMode, CopyMode copyMode ) throws JSchException, IOException {
-        this.session = session;
-
-        if ( session.isConnected() ) {
-            throw new IllegalStateException( "session must not be connected" );
-        }
+    public ScpConnection( SessionFactory sessionFactory, String path, ScpMode scpMode, CopyMode copyMode ) throws JSchException, IOException {
+        this.session = sessionFactory.newSession();
 
         logger.debug( "connecting session" );
         session.connect();

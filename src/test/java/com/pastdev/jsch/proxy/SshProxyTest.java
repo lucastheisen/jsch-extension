@@ -23,6 +23,7 @@ import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Proxy;
 import com.jcraft.jsch.Session;
+import com.pastdev.jsch.DefaultSessionFactory;
 import com.pastdev.jsch.IOUtils;
 import com.pastdev.jsch.SessionFactory;
 
@@ -30,7 +31,7 @@ import com.pastdev.jsch.SessionFactory;
 public class SshProxyTest {
     private static Logger logger = LoggerFactory.getLogger( SshProxyTest.class );
     protected static final Charset UTF8 = Charset.forName( "UTF-8" );
-    protected static SessionFactory sessionFactory;
+    protected static DefaultSessionFactory sessionFactory;
     protected static Properties properties;
     protected static String username;
     protected static String hostname;
@@ -70,7 +71,7 @@ public class SshProxyTest {
         hostname = "localhost";
         port = Integer.parseInt( properties.getProperty( "scp.out.test.port" ) );
 
-        sessionFactory = new SessionFactory();
+        sessionFactory = new DefaultSessionFactory( username, hostname, port );
         try {
             sessionFactory.setKnownHosts( knownHosts );
             sessionFactory.setIdentityFromPrivateKey( privateKey );
@@ -86,13 +87,16 @@ public class SshProxyTest {
         Session session = null;
         Channel channel = null;
         try {
-            proxy = new SshProxy( sessionFactory.newSession( username, "localhost", 22 ) );
-            session = sessionFactory.newSession( username, hostname, port, proxy );
+            SessionFactory proxySessionFactory = sessionFactory.newSessionFactoryBuilder()
+                    .setHostname( "localhost" ).setPort( SessionFactory.SSH_PORT ).build();
+            SessionFactory destinationSessionFactory = sessionFactory.newSessionFactoryBuilder()
+                    .setProxy( new SshProxy( proxySessionFactory ) ).build();
+            session = destinationSessionFactory.newSession();
 
             session.connect();
 
             channel = session.openChannel( "exec" );
-            ((ChannelExec) channel).setCommand( "echo " + expected );
+            ((ChannelExec)channel).setCommand( "echo " + expected );
             InputStream inputStream = channel.getInputStream();
             channel.connect();
 
