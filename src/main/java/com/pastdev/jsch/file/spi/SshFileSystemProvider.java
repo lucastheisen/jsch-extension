@@ -1,13 +1,20 @@
-package com.pastdev.jsch.file;
+package com.pastdev.jsch.file.spi;
 
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Iterator;
+import java.util.Map;
 
 
+import com.jcraft.jsch.JSchException;
 import com.pastdev.jsch.SessionFactory;
 import com.pastdev.jsch.command.CommandRunner;
+import com.pastdev.jsch.file.DirectoryStream;
+import com.pastdev.jsch.file.SshPath;
+import com.pastdev.jsch.file.attribute.BasicFileAttributes;
 
 
 abstract public class SshFileSystemProvider implements Closeable {
@@ -19,7 +26,7 @@ abstract public class SshFileSystemProvider implements Closeable {
         this.commandRunner = new CommandRunner( sessionFactory );
     }
 
-    protected CommandRunner getCommandRunner() {
+    CommandRunner getCommandRunner() {
         return commandRunner;
     }
 
@@ -27,11 +34,41 @@ abstract public class SshFileSystemProvider implements Closeable {
         commandRunner.close();
     }
 
+    public InputStream getInputStream( SshPath path ) throws IOException {
+        BasicFileAttributes attributes = readAttributes( path, BasicFileAttributes.class );
+
+        StringBuilder command = new StringBuilder( "ssh -fq" );
+        if ( attributes.isDirectory() ) {
+            command.append( "r" );
+        }
+        command.append( " " ).append( path.toString() );
+
+        try {
+            commandRunner.open( command.toString() );
+        }
+        catch ( JSchException e ) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    public OutputStream getOutputStream( SshPath path ) throws IOException {
+        return null;
+    }
+
+    abstract public String getSeparator();
+
     public SessionFactory getSessionFactory() {
         return sessionFactory;
     }
 
-    abstract public DirectoryStream<SshPath> newDirectoryStream( SshPath sshPath ) throws IOException;
+    abstract public DirectoryStream<SshPath> newDirectoryStream( SshPath path ) throws IOException;
+
+    abstract public <A extends BasicFileAttributes> A readAttributes( SshPath path, Class<A> type ) throws IOException;
+
+    abstract public Map<String, Object> readAttributes( SshPath path, String attributes ) throws IOException;
 
     public static class ArrayEntryDirectoryStream implements DirectoryStream<SshPath> {
         private String[] entries;

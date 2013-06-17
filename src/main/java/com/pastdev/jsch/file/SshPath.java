@@ -15,6 +15,4 @@ public interface SshPath extends Iterable<SshPath>, Comparable<SshPath> {
     public String getUsername();
 
     public SshPath resolve( String other );
-
-    public SshFile toFile();
 }

@@ -1,9 +1,7 @@
-package com.pastdev.jsch.file.unix;
+package com.pastdev.jsch.file;
 
 
-import com.pastdev.jsch.file.SshFileSystem;
-import com.pastdev.jsch.file.SshFileSystemProvider;
-import com.pastdev.jsch.file.SshPath;
+import com.pastdev.jsch.file.spi.SshFileSystemProvider;
 
 
 public class UnixSshFileSystem extends SshFileSystem {
@@ -14,7 +12,6 @@ public class UnixSshFileSystem extends SshFileSystem {
 
     @Override
     public SshPath getPath( String first, String... more ) {
-        //TODO: implement me
-        return null;
+        return new UnixSshPath( this, first, more );
     }
 }

@@ -41,7 +41,21 @@ public class CommandRunner implements Closeable {
         this.session = null;
     }
 
+    public ChannelExec open( String command ) throws JSchException, IOException {
+        logger.debug( "executing {} on {}", command, sessionFactory );
+        Session session = getSession();
+
+        ChannelExec channel = (ChannelExec)session.openChannel( "exec" );
+        channel.setCommand( command );
+
+        logger.debug( "connecting channel" );
+        channel.connect();
+        
+        return channel;
+    }
+
     public int execute( String command ) throws JSchException, IOException {
+        logger.debug( "executing {} on {}", command, sessionFactory );
         Session session = getSession();
 
         ByteArrayOutputStream stdoutStream = new ByteArrayOutputStream();
@@ -84,7 +98,7 @@ public class CommandRunner implements Closeable {
         }
         return session;
     }
-    
+
     public SessionFactory getSessionFactory() {
         return sessionFactory;
     }

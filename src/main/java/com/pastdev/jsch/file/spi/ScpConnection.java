@@ -1,4 +1,4 @@
-package com.pastdev.jsch.scp;
+package com.pastdev.jsch.file.spi;
 
 
 import java.io.Closeable;
@@ -16,9 +16,10 @@ import org.slf4j.LoggerFactory;
 import com.jcraft.jsch.Channel;
 import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.Session;
 import com.pastdev.jsch.JSchIOException;
-import com.pastdev.jsch.SessionFactory;
+import com.pastdev.jsch.file.SshPath;
+import com.pastdev.jsch.file.attribute.BasicFileAttributes;
+import com.pastdev.jsch.file.attribute.PosixFileAttributes;
 
 
 /**
@@ -37,25 +38,13 @@ public class ScpConnection implements Closeable {
     private Stack<CurrentEntry> entryStack;
     private InputStream inputStream;
     private OutputStream outputStream;
-    private Session session;
 
-    public ScpConnection( SessionFactory sessionFactory, String path, ScpMode scpMode, CopyMode copyMode ) throws JSchException, IOException {
-        this.session = sessionFactory.newSession();
-
-        logger.debug( "connecting session" );
-        session.connect();
-
-        String command = getCommand( path, scpMode, copyMode );
-        channel = session.openChannel( "exec" );
-        logger.debug( "setting exec command to '{}'", command );
-        ((ChannelExec)channel).setCommand( command );
-
-        logger.debug( "connecting channel" );
-        channel.connect();
+    public ScpConnection( ScpEntry entry, ScpMode scpMode ) throws JSchException, IOException {
+        String command = getCommand( entry.path(), scpMode );
+        ChannelExec channel = entry.path().getFileSystem().provider().getCommandRunner().open( command );
 
         outputStream = channel.getOutputStream();
         inputStream = channel.getInputStream();
-
 
         if ( scpMode == ScpMode.FROM ) {
             writeAck();
@@ -67,7 +56,9 @@ public class ScpConnection implements Closeable {
         this.entryStack = new Stack<CurrentEntry>();
     }
 
-    private static String getCommand( String path, ScpMode scpMode, CopyMode copyMode ) {
+    private static String getCommand( SshPath path, ScpMode scpMode ) throws IOException {
+        BasicFileAttributes attributes = path.getFileSystem().provider().readAttributes( path, BasicFileAttributes.class );
+
         StringBuilder command = null;
         switch ( scpMode ) {
             case TO:
@@ -77,7 +68,7 @@ public class ScpConnection implements Closeable {
                 command = new StringBuilder( "scp -fq" );
         }
 
-        if ( copyMode == CopyMode.RECURSIVE ) {
+        if ( attributes.isDirectory() ) {
             command.append( "r" );
         }
 
@@ -148,10 +139,6 @@ public class ScpConnection implements Closeable {
 
         if ( channel != null && channel.isConnected() ) {
             channel.disconnect();
-        }
-        if ( session != null && session.isConnected() ) {
-            logger.debug( "disconnecting session" );
-            session.disconnect();
         }
 
         if ( toThrow != null ) {
@@ -225,7 +212,7 @@ public class ScpConnection implements Closeable {
 
         ScpEntry scpEntry = null;
         if ( type == 'E' ) {
-            scpEntry = ScpEntry.newEndOfDirectory();
+            scpEntry = ScpEntry.newEndOfDirectoryEntry();
             readMessageSegment(); // read and discard the \n
         }
         else if ( type == 'C' || type == 'D' ) {
@@ -237,8 +224,8 @@ public class ScpConnection implements Closeable {
             if ( name == null ) return null;
 
             scpEntry = type == 'C'
-                    ? ScpEntry.newFile( name, size, mode )
-                    : ScpEntry.newDirectory( name, mode );
+                    ? ScpEntry.newRegularFileEntry( name, size, mode )
+                    : ScpEntry.newDirectoryEntry( name, mode );
         }
         else {
             throw new UnsupportedOperationException( "unknown protocol message type " + type );
@@ -248,26 +235,18 @@ public class ScpConnection implements Closeable {
         return scpEntry;
     }
 
-    public void putNextEntry( String name ) throws IOException {
-        putNextEntry( ScpEntry.newDirectory( name ) );
-    }
-
-    public void putNextEntry( String name, long size ) throws IOException {
-        putNextEntry( ScpEntry.newFile( name, size ) );
+    public void putEndOfDirectory() throws IOException {
+        while ( !entryStack.isEmpty() ) {
+            boolean isDirectory = entryStack.peek().isDirectoryEntry();
+            closeEntry();
+            if ( isDirectory ) {
+                break;
+            }
+        }
     }
 
     public void putNextEntry( ScpEntry entry ) throws IOException {
-        if ( entry.isEndOfDirectory() ) {
-            while ( !entryStack.isEmpty() ) {
-                boolean isDirectory = entryStack.peek().isDirectoryEntry();
-                closeEntry();
-                if ( isDirectory ) {
-                    break;
-                }
-            }
-            return;
-        }
-        else if ( !entryStack.isEmpty() ) {
+        if ( !entryStack.isEmpty() ) {
             CurrentEntry currentEntry = entryStack.peek();
             if ( !currentEntry.isDirectoryEntry() ) {
                 // auto close previous file entry
@@ -335,8 +314,8 @@ public class ScpConnection implements Closeable {
     }
 
     private class OutputDirectoryEntry implements CurrentEntry {
-        private OutputDirectoryEntry( ScpEntry entry ) throws IOException {
-            writeMessage( "D" + entry.getMode() + " 0 " + entry.getName() + "\n" );
+        private OutputDirectoryEntry( SshPath path, PosixFileAttributes attributes ) throws IOException {
+            writeMessage( "D" + attributes.permissions() + " 0 " + path.getName() + "\n" );
         }
 
         public void complete() throws IOException {
@@ -401,15 +380,16 @@ public class ScpConnection implements Closeable {
     }
 
     private class EntryOutputStream extends OutputStream implements CurrentEntry {
-        private ScpEntry entry;
-        private long ioCount;
+        private PosixFileAttributes attributes;
         private boolean closed;
+        private long ioCount;
+        private SshPath path;
 
-        public EntryOutputStream( ScpEntry entry ) throws IOException {
-            this.entry = entry;
+        public EntryOutputStream( SshPath path, PosixFileAttributes attributes ) throws IOException {
+            this.path = path;
             this.ioCount = 0L;
 
-            writeMessage( "C" + entry.getMode() + " " + entry.getSize() + " " + entry.getName() + "\n" );
+            writeMessage( "C" + attributes.permissions() + " " + attributes.size() + " " + path.getName() + "\n" );
             this.closed = false;
         }
 
@@ -418,7 +398,7 @@ public class ScpConnection implements Closeable {
             if ( !closed ) {
                 if ( !isComplete() ) {
                     throw new IOException( "stream not finished ("
-                            + ioCount + "!=" + entry.getSize() + ")" );
+                            + ioCount + "!=" + attributes.size() + ")" );
                 }
                 writeMessage( (byte)0 );
                 this.closed = true;
@@ -431,13 +411,13 @@ public class ScpConnection implements Closeable {
 
         private void increment() throws IOException {
             if ( isComplete() ) {
-                throw new IOException( "too many bytes written for file " + entry.getName() );
+                throw new IOException( "too many bytes written for file " + path.getName() );
             }
             ioCount++;
         }
 
         private boolean isComplete() {
-            return ioCount == entry.getSize();
+            return ioCount == attributes.size();
         }
 
         public boolean isDirectoryEntry() {

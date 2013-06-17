@@ -1,10 +1,8 @@
 package com.pastdev.jsch.file;
 
 
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.Iterator;
-import java.util.List;
 
 
 import com.pastdev.jsch.SessionFactory;
@@ -26,58 +24,74 @@ abstract public class AbstractSshPath implements SshPath {
     }
 
     public String getHostname() {
-        // TODO Auto-generated method stub
-        return null;
+        return fileSystem.provider().getSessionFactory().getHostname();
     }
 
     public String getName() {
-        // TODO Auto-generated method stub
-        return null;
+        return parts[parts.length - 1];
     }
 
     public int getPort() {
-        // TODO Auto-generated method stub
-        return 0;
+        return fileSystem.provider().getSessionFactory().getPort();
     }
 
     public SshPath getParentPath() {
-        // TODO Auto-generated method stub
-        return null;
+        if ( parts.length == 1 ) {
+            return null;
+        }
+        else {
+            int moreLength = parts.length - 2;
+            String[] more = new String[moreLength];
+            Arrays.copyOfRange( more, 1, moreLength );
+            return fileSystem.getPath( parts[0], more );
+        }
     }
 
-    abstract protected String getSeparator();
-
     public String getUsername() {
-        // TODO Auto-generated method stub
-        return null;
+        return fileSystem.provider().getSessionFactory().getUsername();
     }
 
     public Iterator<SshPath> iterator() {
-        List<SshPath> ancestry = new ArrayList<SshPath>();
-        SshPath parent = this;
-        while ( (parent = parent.getParentPath() ) != null ) {
-            ancestry.add( parent );
-        }
-        
-        Collections.reverse( ancestry );
-        
-        return ancestry.iterator();
+        return new Iterator<SshPath>() {
+            int index = 0;
+
+            public boolean hasNext() {
+                return index < parts.length;
+            }
+
+            public SshPath next() {
+                if ( index++ == 0 ) {
+                    return fileSystem.getPath( parts[0] );
+                }
+                else {
+                    return fileSystem.getPath( parts[0], Arrays.copyOfRange( parts, 1, index ) );
+                }
+            }
+
+            public void remove() {
+                // path is immutable... dont want to allow changes
+                throw new UnsupportedOperationException();
+            }
+        };
     }
 
     public SshPath resolve( String other ) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public SshFile toFile() {
-        // TODO Auto-generated method stub
-        return null;
+        if ( parts.length == 1 ) {
+            return fileSystem.getPath( parts[0] );
+        }
+        else {
+            String[] more = new String[parts.length];
+            int moreLength = parts.length - 1;
+            Arrays.copyOfRange( more, 1, moreLength );
+            more[moreLength] = other;
+            return fileSystem.getPath( parts[0], more );
+        }
     }
 
     public String toUri() {
         String path = joinParts( 0, parts.length );
-        SessionFactory sessionFactory = getFileSystem().provider().getSessionFactory();
-        String separator = getSeparator();
+        SessionFactory sessionFactory = fileSystem.provider().getSessionFactory();
+        String separator = fileSystem.provider().getSeparator();
         return "ssh://" + sessionFactory.getUsername() + "@"
                 + sessionFactory.getHostname() + ":" + sessionFactory.getPort()
                 + separator
@@ -87,9 +101,10 @@ abstract public class AbstractSshPath implements SshPath {
     private String joinParts( int startIndex, int count ) {
         StringBuilder builder = new StringBuilder();
         int endIndex = startIndex + count;
+        String separator = fileSystem.provider().getSeparator();
         for ( int i = startIndex; i < endIndex; i++ ) {
             if ( i > 0 ) {
-                builder.append( getSeparator() );
+                builder.append( separator );
             }
             builder.append( parts[i] );
         }

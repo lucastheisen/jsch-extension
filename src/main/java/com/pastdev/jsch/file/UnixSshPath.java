@@ -1,8 +1,6 @@
-package com.pastdev.jsch.file.unix;
+package com.pastdev.jsch.file;
 
 
-import com.pastdev.jsch.file.AbstractSshPath;
-import com.pastdev.jsch.file.SshPath;
 
 
 public class UnixSshPath extends AbstractSshPath {
@@ -16,10 +14,5 @@ public class UnixSshPath extends AbstractSshPath {
             throw new ClassCastException( "cannot compare paths from 2 different filesystems" );
         }
         return toString().compareTo( ((UnixSshPath)o).toString() );
-    }
-
-    @Override
-    protected String getSeparator() {
-        return "/";
     }
 }

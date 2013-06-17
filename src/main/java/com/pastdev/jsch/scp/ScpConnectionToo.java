@@ -14,11 +14,9 @@ import org.slf4j.LoggerFactory;
 
 
 import com.jcraft.jsch.Channel;
-import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.Session;
+import com.pastdev.jsch.IOUtils;
 import com.pastdev.jsch.JSchIOException;
-import com.pastdev.jsch.SessionFactory;
 
 
 /**
@@ -29,33 +27,17 @@ import com.pastdev.jsch.SessionFactory;
  * @author LTHEISEN
  * 
  */
-public class ScpConnection implements Closeable {
-    private static Logger logger = LoggerFactory.getLogger( ScpConnection.class );
+public class ScpConnectionToo implements Closeable {
+    private static Logger logger = LoggerFactory.getLogger( ScpConnectionToo.class );
     private static final Charset US_ASCII = Charset.forName( "US-ASCII" );
 
-    private Channel channel;
     private Stack<CurrentEntry> entryStack;
     private InputStream inputStream;
     private OutputStream outputStream;
-    private Session session;
 
-    public ScpConnection( SessionFactory sessionFactory, String path, ScpMode scpMode, CopyMode copyMode ) throws JSchException, IOException {
-        this.session = sessionFactory.newSession();
-
-        logger.debug( "connecting session" );
-        session.connect();
-
-        String command = getCommand( path, scpMode, copyMode );
-        channel = session.openChannel( "exec" );
-        logger.debug( "setting exec command to '{}'", command );
-        ((ChannelExec)channel).setCommand( command );
-
-        logger.debug( "connecting channel" );
-        channel.connect();
-
+    public ScpConnectionToo( Channel channel, ScpMode scpMode ) throws JSchException, IOException {
         outputStream = channel.getOutputStream();
         inputStream = channel.getInputStream();
-
 
         if ( scpMode == ScpMode.FROM ) {
             writeAck();
@@ -65,23 +47,6 @@ public class ScpConnection implements Closeable {
         }
 
         this.entryStack = new Stack<CurrentEntry>();
-    }
-
-    private static String getCommand( String path, ScpMode scpMode, CopyMode copyMode ) {
-        StringBuilder command = null;
-        switch ( scpMode ) {
-            case TO:
-                command = new StringBuilder( "scp -tq" );
-                break;
-            case FROM:
-                command = new StringBuilder( "scp -fq" );
-        }
-
-        if ( copyMode == CopyMode.RECURSIVE ) {
-            command.append( "r" );
-        }
-
-        return command.append( " " ).append( path ).toString();
     }
 
     /**
@@ -126,33 +91,8 @@ public class ScpConnection implements Closeable {
             toThrow = e;
         }
 
-        try {
-            if ( outputStream != null ) {
-                outputStream.close();
-            }
-        }
-        catch ( IOException e ) {
-            logger.error( "failed to close outputStream: {}", e.getMessage() );
-            logger.debug( "failed to close outputStream:", e );
-        }
-
-        try {
-            if ( inputStream != null ) {
-                inputStream.close();
-            }
-        }
-        catch ( IOException e ) {
-            logger.error( "failed to close inputStream: {}", e.getMessage() );
-            logger.debug( "failed to close inputStream:", e );
-        }
-
-        if ( channel != null && channel.isConnected() ) {
-            channel.disconnect();
-        }
-        if ( session != null && session.isConnected() ) {
-            logger.debug( "disconnecting session" );
-            session.disconnect();
-        }
+        IOUtils.closeAndLogException( outputStream );
+        IOUtils.closeAndLogException( inputStream );
 
         if ( toThrow != null ) {
             throw toThrow;

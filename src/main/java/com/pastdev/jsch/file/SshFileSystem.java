@@ -5,6 +5,7 @@ import java.io.Closeable;
 import java.io.IOException;
 
 
+import com.pastdev.jsch.file.spi.SshFileSystemProvider;
 
 
 abstract public class SshFileSystem implements Closeable {
@@ -17,7 +18,7 @@ abstract public class SshFileSystem implements Closeable {
     public void close() throws IOException {
         provider.close();
     }
-    
+
     abstract public SshPath getPath( String first, String... more );
 
     public SshFileSystemProvider provider() {
