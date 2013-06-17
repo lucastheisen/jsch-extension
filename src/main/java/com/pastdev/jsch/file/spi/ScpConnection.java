@@ -19,7 +19,6 @@ import com.jcraft.jsch.JSchException;
 import com.pastdev.jsch.JSchIOException;
 import com.pastdev.jsch.file.SshPath;
 import com.pastdev.jsch.file.attribute.BasicFileAttributes;
-import com.pastdev.jsch.file.attribute.PosixFileAttributes;
 
 
 /**
@@ -38,10 +37,12 @@ public class ScpConnection implements Closeable {
     private Stack<CurrentEntry> entryStack;
     private InputStream inputStream;
     private OutputStream outputStream;
+    private SshPath connectionPath;
 
     public ScpConnection( ScpEntry entry, ScpMode scpMode ) throws JSchException, IOException {
-        String command = getCommand( entry.path(), scpMode );
-        ChannelExec channel = entry.path().getFileSystem().provider().getCommandRunner().open( command );
+        this.connectionPath = entry.path();
+        String command = getCommand( connectionPath, scpMode );
+        ChannelExec channel = connectionPath.getFileSystem().provider().getCommandRunner().open( command );
 
         outputStream = channel.getOutputStream();
         inputStream = channel.getInputStream();
@@ -223,9 +224,10 @@ public class ScpConnection implements Closeable {
             String name = readMessageSegment();
             if ( name == null ) return null;
 
+            SshPath path = entryStack.peek().path().resolve( name );
             scpEntry = type == 'C'
-                    ? ScpEntry.newRegularFileEntry( name, size, mode )
-                    : ScpEntry.newDirectoryEntry( name, mode );
+                    ? ScpEntry.newRegularFileEntry( path, mode, size )
+                    : ScpEntry.newDirectoryEntry( path, mode );
         }
         else {
             throw new UnsupportedOperationException( "unknown protocol message type " + type );
@@ -297,10 +299,15 @@ public class ScpConnection implements Closeable {
         public void complete() throws IOException;
 
         public boolean isDirectoryEntry();
+
+        public SshPath path();
     }
 
     private class InputDirectoryEntry implements CurrentEntry {
+        private ScpEntry entry;
+
         private InputDirectoryEntry( ScpEntry entry ) throws IOException {
+            this.entry = entry;
             writeAck();
         }
 
@@ -311,11 +318,18 @@ public class ScpConnection implements Closeable {
         public boolean isDirectoryEntry() {
             return true;
         }
+
+        public SshPath path() {
+            return entry.path();
+        }
     }
 
     private class OutputDirectoryEntry implements CurrentEntry {
-        private OutputDirectoryEntry( SshPath path, PosixFileAttributes attributes ) throws IOException {
-            writeMessage( "D" + attributes.permissions() + " 0 " + path.getName() + "\n" );
+        private ScpEntry entry;
+
+        private OutputDirectoryEntry( ScpEntry entry ) throws IOException {
+            this.entry = entry;
+            writeMessage( "D" + entry.mode() + " 0 " + entry.path().getName() + "\n" );
         }
 
         public void complete() throws IOException {
@@ -324,6 +338,10 @@ public class ScpConnection implements Closeable {
 
         public boolean isDirectoryEntry() {
             return true;
+        }
+
+        public SshPath path() {
+            return entry.path();
         }
     }
 
@@ -345,7 +363,7 @@ public class ScpConnection implements Closeable {
             if ( !closed ) {
                 if ( !isComplete() ) {
                     throw new IOException( "stream not finished ("
-                            + ioCount + "!=" + entry.getSize() + ")" );
+                            + ioCount + "!=" + entry.size() + ")" );
                 }
                 writeAck();
                 checkAck();
@@ -362,11 +380,15 @@ public class ScpConnection implements Closeable {
         }
 
         private boolean isComplete() {
-            return ioCount == entry.getSize();
+            return ioCount == entry.size();
         }
 
         public boolean isDirectoryEntry() {
             return false;
+        }
+
+        public SshPath path() {
+            return entry.path();
         }
 
         @Override
@@ -380,16 +402,15 @@ public class ScpConnection implements Closeable {
     }
 
     private class EntryOutputStream extends OutputStream implements CurrentEntry {
-        private PosixFileAttributes attributes;
         private boolean closed;
         private long ioCount;
-        private SshPath path;
+        private ScpEntry entry;
 
-        public EntryOutputStream( SshPath path, PosixFileAttributes attributes ) throws IOException {
-            this.path = path;
+        public EntryOutputStream( ScpEntry entry ) throws IOException {
+            this.entry = entry;
             this.ioCount = 0L;
 
-            writeMessage( "C" + attributes.permissions() + " " + attributes.size() + " " + path.getName() + "\n" );
+            writeMessage( "C" + entry.mode() + " " + entry.size() + " " + entry.path().getName() + "\n" );
             this.closed = false;
         }
 
@@ -398,7 +419,7 @@ public class ScpConnection implements Closeable {
             if ( !closed ) {
                 if ( !isComplete() ) {
                     throw new IOException( "stream not finished ("
-                            + ioCount + "!=" + attributes.size() + ")" );
+                            + ioCount + "!=" + entry.size() + ")" );
                 }
                 writeMessage( (byte)0 );
                 this.closed = true;
@@ -411,17 +432,21 @@ public class ScpConnection implements Closeable {
 
         private void increment() throws IOException {
             if ( isComplete() ) {
-                throw new IOException( "too many bytes written for file " + path.getName() );
+                throw new IOException( "too many bytes written for file " + entry.path().getName() );
             }
             ioCount++;
         }
 
         private boolean isComplete() {
-            return ioCount == attributes.size();
+            return ioCount == entry.size();
         }
 
         public boolean isDirectoryEntry() {
             return false;
+        }
+
+        public SshPath path() {
+            return entry.path();
         }
 
         @Override
