@@ -34,7 +34,7 @@ public class IOUtils {
 
     public static void closeAndLogException( Closeable closeable ) {
         if ( closeable == null ) {
-            logger.debug( "closeable was null" );
+            logger.trace( "closeable was null" );
         }
         else {
             try {

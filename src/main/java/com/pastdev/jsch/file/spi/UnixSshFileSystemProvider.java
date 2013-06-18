@@ -2,6 +2,8 @@ package com.pastdev.jsch.file.spi;
 
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -9,9 +11,14 @@ import java.util.List;
 import java.util.Map;
 
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+
 import com.jcraft.jsch.JSchException;
 import com.pastdev.jsch.SessionFactory;
 import com.pastdev.jsch.command.CommandRunner;
+import com.pastdev.jsch.command.CommandRunner.ChannelExecWrapper;
 import com.pastdev.jsch.file.DirectoryStream;
 import com.pastdev.jsch.file.SshPath;
 import com.pastdev.jsch.file.attribute.BasicFileAttributes;
@@ -19,15 +26,12 @@ import com.pastdev.jsch.file.attribute.PosixFileAttributes;
 
 
 public class UnixSshFileSystemProvider extends SshFileSystemProvider {
-    private static final String ASCII_UNIT_SEPARATOR = Character.toString( (char)31 );
+    private static Logger logger = LoggerFactory.getLogger( UnixSshFileSystemProvider.class );
+    private static final String ASCII_UNIT_SEPARATOR = Character.toString( (char) 31 );
+    public static final char PATH_SEPARATOR = '/';
 
     public UnixSshFileSystemProvider( SessionFactory sessionFactory ) {
         super( sessionFactory );
-    }
-
-    @Override
-    public String getSeparator() {
-        return "/";
     }
 
     @Override
@@ -51,18 +55,66 @@ public class UnixSshFileSystemProvider extends SshFileSystemProvider {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
+    public InputStream newInputStream( SshPath path ) throws IOException {
+        try {
+            final ChannelExecWrapper channel = getCommandRunner().open( "cat " + path.toString() );
+            return new InputStream() {
+                private InputStream inputStream = channel.getInputStream();
+
+                @Override
+                public void close() throws IOException {
+                    int exitCode = channel.close();
+                    logger.debug( "cat exited with {}", exitCode );
+                }
+
+                @Override
+                public int read() throws IOException {
+                    return inputStream.read();
+                }
+            };
+        }
+        catch ( JSchException e ) {
+            throw new IOException( e );
+        }
+    }
+
+    @Override
+    public OutputStream newOutputStream( SshPath path ) throws IOException {
+        try {
+            final ChannelExecWrapper channel = getCommandRunner().open( "cat > " + path.toString() );
+            return new OutputStream() {
+                private OutputStream outputStream = channel.getOutputStream();
+
+                @Override
+                public void close() throws IOException {
+                    int exitCode = channel.close();
+                    logger.debug( "cat exited with {}", exitCode );
+                }
+
+                @Override
+                public void write( int b ) throws IOException {
+                    outputStream.write( b );
+                }
+            };
+        }
+        catch ( JSchException e ) {
+            throw new IOException( e );
+        }
+    }
+
+    @Override
+    @SuppressWarnings( "unchecked" )
     public <A extends BasicFileAttributes> A readAttributes( SshPath path, Class<A> type ) throws IOException {
         if ( type == BasicFileAttributes.class ) {
-            return (A)new BasicFileAttributesImpl( path );
+            return (A) new BasicFileAttributesImpl( path );
         }
         if ( type == PosixFileAttributes.class ) {
-            return (A)new PosixFileAttributesImpl( path );
+            return (A) new PosixFileAttributesImpl( path );
         }
         if ( type == null ) {
             throw new NullPointerException();
         }
-        return (A)null;
+        return (A) null;
     }
 
     @Override
@@ -216,7 +268,7 @@ public class UnixSshFileSystemProvider extends SshFileSystemProvider {
         }
 
         public Date creationTime() {
-            return (Date)map.get( SupportedAttribute.creationTime.toString() );
+            return (Date) map.get( SupportedAttribute.creationTime.toString() );
         }
 
         public Object fileKey() {
@@ -224,31 +276,31 @@ public class UnixSshFileSystemProvider extends SshFileSystemProvider {
         }
 
         public boolean isDirectory() {
-            return (Boolean)map.get( SupportedAttribute.isDirectory.toString() );
+            return (Boolean) map.get( SupportedAttribute.isDirectory.toString() );
         }
 
         public boolean isOther() {
-            return (Boolean)map.get( SupportedAttribute.isOther.toString() );
+            return (Boolean) map.get( SupportedAttribute.isOther.toString() );
         }
 
         public boolean isRegularFile() {
-            return (Boolean)map.get( SupportedAttribute.isRegularFile.toString() );
+            return (Boolean) map.get( SupportedAttribute.isRegularFile.toString() );
         }
 
         public boolean isSymbolicLink() {
-            return (Boolean)map.get( SupportedAttribute.isSymbolicLink.toString() );
+            return (Boolean) map.get( SupportedAttribute.isSymbolicLink.toString() );
         }
 
         public Date lastAccessTime() {
-            return (Date)map.get( SupportedAttribute.lastAccessTime.toString() );
+            return (Date) map.get( SupportedAttribute.lastAccessTime.toString() );
         }
 
         public Date lastModifiedTime() {
-            return (Date)map.get( SupportedAttribute.lastModifiedTime.toString() );
+            return (Date) map.get( SupportedAttribute.lastModifiedTime.toString() );
         }
 
         public long size() {
-            return (Long)map.get( SupportedAttribute.size.toString() );
+            return (Long) map.get( SupportedAttribute.size.toString() );
         }
     }
 
@@ -258,15 +310,15 @@ public class UnixSshFileSystemProvider extends SshFileSystemProvider {
         }
 
         public String group() {
-            return (String)map.get( SupportedAttribute.group.toString() );
+            return (String) map.get( SupportedAttribute.group.toString() );
         }
 
         public String owner() {
-            return (String)map.get( SupportedAttribute.owner.toString() );
+            return (String) map.get( SupportedAttribute.owner.toString() );
         }
 
         public String permissions() {
-            return (String)map.get( SupportedAttribute.permissions.toString() );
+            return (String) map.get( SupportedAttribute.permissions.toString() );
         }
     }
 }

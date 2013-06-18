@@ -11,6 +11,7 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.Date;
 import java.util.HashSet;
@@ -90,7 +91,8 @@ public class UnixSshFileSystemTest {
             Assume.assumeNoException( e );
         }
         unixSshFileSystem = new UnixSshFileSystem(
-                new UnixSshFileSystemProvider( defaultSessionFactory ) );
+                new UnixSshFileSystemProvider( defaultSessionFactory ),
+                "/home/ltheisen" );
     }
 
     @Test
@@ -146,6 +148,76 @@ public class UnixSshFileSystemTest {
         }
         finally {
             IOUtils.deleteFiles( file1, file1, file3, file4, rootDir );
+        }
+    }
+
+    @Test
+    public void testNewInputStream() {
+        String root = UUID.randomUUID().toString();
+        String filename = "outputstreamtest.txt";
+
+        File rootDir = new File( filesystemPath, root );
+        File file = new File( rootDir, filename );
+        SshPath path = unixSshFileSystem.getPath( scpPath, root, filename );
+        try {
+            rootDir.mkdirs();
+            
+            IOUtils.writeFile( file, expected );
+            
+            InputStream inputStream = null;
+            try {
+                inputStream = path.getFileSystem().provider().newInputStream( path );
+                assertEquals( expected, IOUtils.copyToString( inputStream ) );
+            }
+            finally {
+                IOUtils.closeAndLogException( inputStream );
+            }
+        }
+        catch ( IOException e ) {
+            logger.error( "failed for {}: {}", path, e );
+            logger.debug( "failed:", e );
+            fail( "failed for " + path + ": " + e.getMessage() );
+        }
+        finally {
+            IOUtils.deleteFiles( file, rootDir );
+        }
+    }
+    
+    @Test
+    public void testNewOutputStream() {
+        String root = UUID.randomUUID().toString();
+        String filename = "outputstreamtest.txt";
+
+        File rootDir = new File( filesystemPath, root );
+        File file = new File( rootDir, filename );
+        SshPath path = unixSshFileSystem.getPath( scpPath, root, filename );
+        try {
+            logger.debug( "making dir {}", rootDir );
+            rootDir.mkdirs();
+
+            OutputStream outputStream = null;
+            try {
+                logger.trace( "getting outputstream" );
+                outputStream = path.getFileSystem().provider().newOutputStream( path );
+                logger.trace( "writing to outputstream" );
+                IOUtils.copyFromString( expected, outputStream );
+                logger.trace( "writing complete" );
+            }
+            finally {
+                IOUtils.closeAndLogException( outputStream );
+            }
+
+            logger.trace( "checking file contents" );
+            assertEquals( expected, IOUtils.readFile( file, UTF8 ) );
+            logger.trace( "file contents match" );
+        }
+        catch ( IOException e ) {
+            logger.error( "failed for {}: {}", path, e );
+            logger.debug( "failed:", e );
+            fail( "failed for " + path + ": " + e.getMessage() );
+        }
+        finally {
+            IOUtils.deleteFiles( file, rootDir );
         }
     }
 
@@ -213,8 +285,8 @@ public class UnixSshFileSystemTest {
             Date now = new Date();
             Map<String, Object> map = unixSshFileSystem.provider().readAttributes( path, "creationTime,size,fileKey" );
 
-            assertTrue( now.after( (Date)map.get( "creationTime" ) ) );
-            assertEquals( Long.valueOf( expected.length() ), (Long)map.get( "size" ) );
+            assertTrue( now.after( (Date) map.get( "creationTime" ) ) );
+            assertEquals( Long.valueOf( expected.length() ), (Long) map.get( "size" ) );
             assertNotNull( map.get( "fileKey" ) );
         }
         catch ( IOException e ) {

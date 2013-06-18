@@ -9,7 +9,6 @@ import java.util.Iterator;
 import java.util.Map;
 
 
-import com.jcraft.jsch.JSchException;
 import com.pastdev.jsch.SessionFactory;
 import com.pastdev.jsch.command.CommandRunner;
 import com.pastdev.jsch.file.DirectoryStream;
@@ -34,37 +33,15 @@ abstract public class SshFileSystemProvider implements Closeable {
         commandRunner.close();
     }
 
-    public InputStream getInputStream( SshPath path ) throws IOException {
-        BasicFileAttributes attributes = readAttributes( path, BasicFileAttributes.class );
-
-        StringBuilder command = new StringBuilder( "ssh -fq" );
-        if ( attributes.isDirectory() ) {
-            command.append( "r" );
-        }
-        command.append( " " ).append( path.toString() );
-
-        try {
-            commandRunner.open( command.toString() );
-        }
-        catch ( JSchException e ) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-
-        return null;
-    }
-
-    public OutputStream getOutputStream( SshPath path ) throws IOException {
-        return null;
-    }
-
-    abstract public String getSeparator();
-
     public SessionFactory getSessionFactory() {
         return sessionFactory;
     }
 
     abstract public DirectoryStream<SshPath> newDirectoryStream( SshPath path ) throws IOException;
+
+    abstract public InputStream newInputStream( SshPath path ) throws IOException;
+
+    abstract public OutputStream newOutputStream( SshPath path ) throws IOException;
 
     abstract public <A extends BasicFileAttributes> A readAttributes( SshPath path, Class<A> type ) throws IOException;
 

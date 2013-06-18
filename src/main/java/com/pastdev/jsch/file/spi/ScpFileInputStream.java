@@ -24,19 +24,19 @@ public class ScpFileInputStream extends InputStream {
         }
         logger.debug( "Opening ScpInputStream to {} {}", entry );
         this.inputStream = new ScpDirectoryInputStream( entry );
-        this.scpEntry = this.inputStream.getNextEntry();
+        this.entry = this.inputStream.getNextEntry();
     }
 
     public String getMode() {
-        return scpEntry.getMode();
+        return entry.mode();
     }
 
     public String getName() {
-        return scpEntry.getName();
+        return entry.path().getFileName();
     }
 
     public long getSize() {
-        return scpEntry.getSize();
+        return entry.size();
     }
 
     @Override

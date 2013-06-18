@@ -14,9 +14,9 @@ import org.slf4j.LoggerFactory;
 
 
 import com.jcraft.jsch.Channel;
-import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSchException;
 import com.pastdev.jsch.JSchIOException;
+import com.pastdev.jsch.command.CommandRunner.ChannelExecWrapper;
 import com.pastdev.jsch.file.SshPath;
 import com.pastdev.jsch.file.attribute.BasicFileAttributes;
 
@@ -39,10 +39,10 @@ public class ScpConnection implements Closeable {
     private OutputStream outputStream;
     private SshPath connectionPath;
 
-    public ScpConnection( ScpEntry entry, ScpMode scpMode ) throws JSchException, IOException {
+    ScpConnection( ScpEntry entry, ScpMode scpMode ) throws JSchException, IOException {
         this.connectionPath = entry.path();
         String command = getCommand( connectionPath, scpMode );
-        ChannelExec channel = connectionPath.getFileSystem().provider().getCommandRunner().open( command );
+        ChannelExecWrapper channel = connectionPath.getFileSystem().provider().getCommandRunner().open( command );
 
         outputStream = channel.getOutputStream();
         inputStream = channel.getInputStream();
@@ -97,7 +97,7 @@ public class ScpConnection implements Closeable {
             StringBuilder sb = new StringBuilder();
             int c;
             while ( (c = inputStream.read()) != '\n' ) {
-                sb.append( (char)c );
+                sb.append( (char) c );
             }
             if ( b == 1 || b == 2 ) {
                 throw new JSchIOException( sb.toString() );
@@ -156,7 +156,7 @@ public class ScpConnection implements Closeable {
             return null;
         }
         CurrentEntry currentEntry = entryStack.peek();
-        return (currentEntry instanceof InputStream) ? (InputStream)currentEntry : null;
+        return (currentEntry instanceof InputStream) ? (InputStream) currentEntry : null;
     }
 
     public OutputStream getCurrentOuputStream() {
@@ -164,7 +164,7 @@ public class ScpConnection implements Closeable {
             return null;
         }
         CurrentEntry currentEntry = entryStack.peek();
-        return (currentEntry instanceof OutputStream) ? (OutputStream)currentEntry : null;
+        return (currentEntry instanceof OutputStream) ? (OutputStream) currentEntry : null;
     }
 
     public ScpEntry getNextEntry() throws IOException {
@@ -209,7 +209,7 @@ public class ScpConnection implements Closeable {
         int ack = checkAck();
         if ( ack == -1 ) return null; // end of stream
 
-        char type = (char)ack;
+        char type = (char) ack;
 
         ScpEntry scpEntry = null;
         if ( type == 'E' ) {
@@ -248,6 +248,10 @@ public class ScpConnection implements Closeable {
     }
 
     public void putNextEntry( ScpEntry entry ) throws IOException {
+        if ( entry.isEndOfDirectory() ) {
+            putEndOfDirectory();
+            return;
+        }
         if ( !entryStack.isEmpty() ) {
             CurrentEntry currentEntry = entryStack.peek();
             if ( !currentEntry.isDirectoryEntry() ) {
@@ -268,7 +272,7 @@ public class ScpConnection implements Closeable {
         byte[] buffer = new byte[1024];
         int bytesRead = 0;
         for ( ;; bytesRead++ ) {
-            byte b = (byte)inputStream.read();
+            byte b = (byte) inputStream.read();
             if ( b == -1 ) return null; // end of stream
             if ( b == ' ' || b == '\n' ) break;
             buffer[bytesRead] = b;
@@ -278,7 +282,7 @@ public class ScpConnection implements Closeable {
 
     private void writeAck() throws IOException {
         logger.debug( "writing ack" );
-        outputStream.write( (byte)0 );
+        outputStream.write( (byte) 0 );
         outputStream.flush();
     }
 
@@ -329,7 +333,7 @@ public class ScpConnection implements Closeable {
 
         private OutputDirectoryEntry( ScpEntry entry ) throws IOException {
             this.entry = entry;
-            writeMessage( "D" + entry.mode() + " 0 " + entry.path().getName() + "\n" );
+            writeMessage( "D" + entry.mode() + " 0 " + entry.path().getFileName() + "\n" );
         }
 
         public void complete() throws IOException {
@@ -410,7 +414,7 @@ public class ScpConnection implements Closeable {
             this.entry = entry;
             this.ioCount = 0L;
 
-            writeMessage( "C" + entry.mode() + " " + entry.size() + " " + entry.path().getName() + "\n" );
+            writeMessage( "C" + entry.mode() + " " + entry.size() + " " + entry.path().getFileName() + "\n" );
             this.closed = false;
         }
 
@@ -421,7 +425,7 @@ public class ScpConnection implements Closeable {
                     throw new IOException( "stream not finished ("
                             + ioCount + "!=" + entry.size() + ")" );
                 }
-                writeMessage( (byte)0 );
+                writeMessage( (byte) 0 );
                 this.closed = true;
             }
         }
@@ -432,7 +436,7 @@ public class ScpConnection implements Closeable {
 
         private void increment() throws IOException {
             if ( isComplete() ) {
-                throw new IOException( "too many bytes written for file " + entry.path().getName() );
+                throw new IOException( "too many bytes written for file " + entry.path().getFileName() );
             }
             ioCount++;
         }

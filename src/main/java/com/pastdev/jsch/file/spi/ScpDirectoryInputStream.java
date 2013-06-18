@@ -10,8 +10,6 @@ import org.slf4j.LoggerFactory;
 
 
 import com.jcraft.jsch.JSchException;
-import com.pastdev.jsch.file.SshPath;
-import com.pastdev.jsch.scp.ScpEntry;
 
 
 public class ScpDirectoryInputStream extends InputStream {

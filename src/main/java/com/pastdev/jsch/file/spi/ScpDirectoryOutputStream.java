@@ -10,8 +10,6 @@ import org.slf4j.LoggerFactory;
 
 
 import com.jcraft.jsch.JSchException;
-import com.pastdev.jsch.file.SshPath;
-import com.pastdev.jsch.file.attribute.PosixFileAttributes;
 
 
 /**
@@ -28,9 +26,12 @@ public class ScpDirectoryOutputStream extends OutputStream {
     private ScpConnection connection;
     private OutputStream outputStream;
 
-    public ScpDirectoryOutputStream( SshPath path ) throws JSchException, IOException {
-        logger.debug( "Opening ScpDirectoryOutputStream to {}", path );
-        this.connection = new ScpConnection( path, ScpMode.TO );
+    public ScpDirectoryOutputStream( ScpEntry entry ) throws JSchException, IOException {
+        if ( !entry.isDirectory() ) {
+            throw new UnsupportedOperationException( "can only open ScpDirectoryInputStream on a directory entry" );
+        }
+        logger.debug( "Opening ScpDirectoryOutputStream to {}", entry );
+        this.connection = new ScpConnection( entry, ScpMode.TO );
     }
 
     @Override
@@ -50,8 +51,8 @@ public class ScpDirectoryOutputStream extends OutputStream {
         outputStream = connection.getCurrentOuputStream();
     }
 
-    public void putNextEntry( SshPath path, PosixFileAttributes attributes ) throws IOException {
-        connection.putNextEntry( path, attributes );
+    public void putNextEntry( ScpEntry entry ) throws IOException {
+        connection.putNextEntry( entry );
         outputStream = connection.getCurrentOuputStream();
     }
 
