@@ -26,8 +26,6 @@ public class CommandRunner implements Closeable {
 
     private final SessionFactory sessionFactory;
     private Session session;
-    private String stdout;
-    private String stderr;
 
     public void close() throws IOException {
         if ( session != null && session.isConnected() ) {
@@ -41,7 +39,7 @@ public class CommandRunner implements Closeable {
         this.session = null;
     }
 
-    public int execute( String command ) throws JSchException, IOException {
+    public ExecuteResult execute( String command ) throws JSchException, IOException {
         logger.debug( "executing {} on {}", command, sessionFactory );
         Session session = getSession();
 
@@ -62,9 +60,9 @@ public class CommandRunner implements Closeable {
             exitCode = channel.close();
         }
 
-        stdout = new String( stdOut.toByteArray(), UTF8 );
-        stderr = new String( stdErr.toByteArray(), UTF8 );
-        return exitCode;
+        return new ExecuteResult( exitCode, 
+                new String( stdOut.toByteArray(), UTF8 ), 
+                new String( stdErr.toByteArray(), UTF8 ));
     }
 
     private Session getSession() throws JSchException {
@@ -81,17 +79,33 @@ public class CommandRunner implements Closeable {
         return sessionFactory;
     }
 
-    public String getStderr() {
-        return stderr;
-    }
-
-    public String getStdout() {
-        return stdout;
-    }
-
     public ChannelExecWrapper open( String command ) throws JSchException, IOException {
         logger.debug( "executing {} on {}", command, sessionFactory );
         return new ChannelExecWrapper( getSession(), command, null, null, null );
+    }
+    
+    public class ExecuteResult {
+        private int exitCode;
+        private String stderr;
+        private String stdout;
+
+        public ExecuteResult( int exitCode, String stdout, String stderr ) {
+            this.exitCode = exitCode;
+            this.stderr = stderr;
+            this.stdout = stdout;
+        }
+
+        public int getExitCode() {
+            return exitCode;
+        }
+
+        public String getStderr() {
+            return stderr;
+        }
+
+        public String getStdout() {
+            return stdout;
+        }
     }
 
     public class ChannelExecWrapper {

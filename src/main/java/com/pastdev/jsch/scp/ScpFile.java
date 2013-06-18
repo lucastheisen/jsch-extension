@@ -8,7 +8,6 @@ import java.io.IOException;
 
 
 import com.jcraft.jsch.JSchException;
-import com.pastdev.jsch.DestinationOs;
 import com.pastdev.jsch.IOUtils;
 import com.pastdev.jsch.SessionFactory;
 

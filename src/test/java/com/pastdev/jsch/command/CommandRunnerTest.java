@@ -22,6 +22,7 @@ import com.jcraft.jsch.JSchException;
 import com.pastdev.jsch.DefaultSessionFactory;
 import com.pastdev.jsch.IOUtils;
 import com.pastdev.jsch.SessionFactory;
+import com.pastdev.jsch.command.CommandRunner.ExecuteResult;
 import com.pastdev.jsch.proxy.SshProxyTest;
 
 
@@ -83,25 +84,25 @@ public class CommandRunnerTest {
             commandRunner = new CommandRunner( sessionFactory );
 
             logger.debug( "run a command" );
-            int exitCode = commandRunner.execute( "echo " + expected );
-            assertEquals( 0, exitCode );
-            assertEquals( expected + "\n", commandRunner.getStdout() );
-            assertEquals( "", commandRunner.getStderr() );
+            ExecuteResult result = commandRunner.execute( "echo " + expected );
+            assertEquals( 0, result.getExitCode() );
+            assertEquals( expected + "\n", result.getStdout() );
+            assertEquals( "", result.getStderr() );
 
             // test automatic reconnect...
             commandRunner.close();
 
             logger.debug( "now try a second command" );
-            exitCode = commandRunner.execute( "echo second " + expected );
-            assertEquals( 0, exitCode );
-            assertEquals( "second " + expected + "\n", commandRunner.getStdout() );
-            assertEquals( "", commandRunner.getStderr() );
+            result = commandRunner.execute( "echo second " + expected );
+            assertEquals( 0, result.getExitCode() );
+            assertEquals( "second " + expected + "\n", result.getStdout() );
+            assertEquals( "", result.getStderr() );
 
             logger.debug( "and a third command" );
-            exitCode = commandRunner.execute( "echo third " + expected );
-            assertEquals( 0, exitCode );
-            assertEquals( "third " + expected + "\n", commandRunner.getStdout() );
-            assertEquals( "", commandRunner.getStderr() );
+            result = commandRunner.execute( "echo third " + expected );
+            assertEquals( 0, result.getExitCode() );
+            assertEquals( "third " + expected + "\n", result.getStdout() );
+            assertEquals( "", result.getStderr() );
 
             logger.debug( "wow, they all worked" );
         }
@@ -122,17 +123,17 @@ public class CommandRunnerTest {
             commandRunner = new CommandRunner( sessionFactory );
 
             logger.debug( "run a command" );
-            int exitCode = commandRunner.execute( "ver" );
-            if ( exitCode == 0 ) {
-                logger.debug( "likely windows: " + commandRunner.getStdout() );
+            ExecuteResult result = commandRunner.execute( "ver" );
+            if ( result.getExitCode() == 0 ) {
+                logger.debug( "likely windows: " + result.getStdout() );
             }
             else {
-                exitCode = commandRunner.execute( "uname -a" );
-                if ( exitCode == 0 ) {
-                    logger.debug( "likely unix: " + commandRunner.getStdout() );
+                result = commandRunner.execute( "uname -a" );
+                if ( result.getExitCode() == 0 ) {
+                    logger.debug( "likely unix: " + result.getStdout() );
                 }
                 else {
-                    logger.debug( "unknown os: " + commandRunner.getStdout() );
+                    logger.debug( "unknown os: " + result.getStdout() );
                 }
             }
             logger.debug( "wow, they all worked" );

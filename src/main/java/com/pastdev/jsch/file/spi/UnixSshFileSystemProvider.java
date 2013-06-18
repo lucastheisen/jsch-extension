@@ -4,6 +4,7 @@ package com.pastdev.jsch.file.spi;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -16,11 +17,17 @@ import org.slf4j.LoggerFactory;
 
 
 import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.Proxy;
+import com.pastdev.jsch.MultiCloseException;
 import com.pastdev.jsch.SessionFactory;
+import com.pastdev.jsch.SessionFactory.SessionFactoryBuilder;
 import com.pastdev.jsch.command.CommandRunner;
 import com.pastdev.jsch.command.CommandRunner.ChannelExecWrapper;
+import com.pastdev.jsch.command.CommandRunner.ExecuteResult;
 import com.pastdev.jsch.file.DirectoryStream;
 import com.pastdev.jsch.file.SshPath;
+import com.pastdev.jsch.file.UnixSshFileSystem;
+import com.pastdev.jsch.file.UnixSshPath;
 import com.pastdev.jsch.file.attribute.BasicFileAttributes;
 import com.pastdev.jsch.file.attribute.PosixFileAttributes;
 
@@ -29,24 +36,115 @@ public class UnixSshFileSystemProvider extends SshFileSystemProvider {
     private static Logger logger = LoggerFactory.getLogger( UnixSshFileSystemProvider.class );
     private static final String ASCII_UNIT_SEPARATOR = Character.toString( (char) 31 );
     public static final char PATH_SEPARATOR = '/';
+    public static final String PATH_SEPARATOR_STRING = "/";
 
-    public UnixSshFileSystemProvider( SessionFactory sessionFactory ) {
-        super( sessionFactory );
+    private Map<URI, UnixSshFileSystem> fileSystemMap;
+
+    public UnixSshFileSystemProvider() {
+        this.fileSystemMap = new HashMap<URI, UnixSshFileSystem>();
+    }
+
+    public UnixSshPath checkPath( SshPath path ) {
+        if ( path == null ) {
+            throw new NullPointerException();
+        }
+        if ( !(path instanceof UnixSshPath) ) {
+            throw new IllegalArgumentException( "path not an instanceof UnixSshPath" );
+        }
+        return (UnixSshPath) path;
+    }
+
+    public void close() throws IOException {
+        MultiCloseException toThrow = null;
+        for ( UnixSshFileSystem sshFileSystem : fileSystemMap.values() ) {
+            try {
+                sshFileSystem.close();
+            }
+            catch ( Exception e ) {
+                if ( toThrow == null ) {
+                    toThrow = new MultiCloseException();
+                }
+                toThrow.add( e );
+            }
+        }
+        if ( toThrow != null ) throw toThrow;
+    }
+
+    @Override
+    public SshPath getPath( URI uri ) {
+        return getSshFileSystem( uri ).getPath( uri.getPath() );
+    }
+
+    @Override
+    public String getScheme() {
+        return "ssh.unix";
+    }
+
+    @Override
+    public UnixSshFileSystem getSshFileSystem( URI uri ) {
+        UnixSshFileSystem fileSystem = fileSystemMap.get( uri.resolve( PATH_SEPARATOR_STRING ) );
+        if ( fileSystem == null ) {
+            throw new RuntimeException( "no filesystem defined for " + uri.toString() );
+        }
+        return fileSystem;
+    }
+
+    @Override
+    public UnixSshFileSystem newSshFileSystem( URI uri, Map<String, ?> environment ) throws IOException {
+        URI baseUri = uri.resolve( PATH_SEPARATOR_STRING );
+        UnixSshFileSystem existing = fileSystemMap.get( baseUri );
+        if ( existing != null ) {
+            throw new RuntimeException( "filesystem already exists for " + uri.toString() + " at " + existing.toString() );
+        }
+        try {
+            // Construct a new sessionFactory from the URI authority, path, and
+            // optional environment proxy
+            SessionFactory defaultSessionFactory = (SessionFactory) environment.get( "defaultSessionFactory" );
+            if ( defaultSessionFactory == null ) {
+                throw new IllegalArgumentException( "defaultSessionFactory environment parameter is required" );
+            }
+            SessionFactoryBuilder builder = defaultSessionFactory.newSessionFactoryBuilder();
+            String username = uri.getUserInfo();
+            if ( username != null ) {
+                builder.setUsername( username );
+            }
+            String hostname = uri.getHost();
+            if ( hostname != null ) {
+                builder.setHostname( hostname );
+            }
+            int port = uri.getPort();
+            if ( port != -1 ) {
+                builder.setPort( port );
+            }
+            Proxy proxy = (Proxy) environment.get( "proxy" );
+            if ( proxy != null ) {
+                builder.setProxy( proxy );
+            }
+
+            UnixSshFileSystem fileSystem = new UnixSshFileSystem(
+                    this, uri, new CommandRunner( builder.build() ) );
+            fileSystemMap.put( baseUri, fileSystem );
+            return fileSystem;
+        }
+        catch ( JSchException e ) {
+            throw new IOException( e );
+        }
     }
 
     @Override
     public DirectoryStream<SshPath> newDirectoryStream( final SshPath path ) throws IOException {
-        CommandRunner commandRunner = getCommandRunner();
+        UnixSshPath unixPath = checkPath( path );
+        CommandRunner commandRunner = unixPath.getFileSystem().getCommandRunner();
         try {
-            int exitCode = commandRunner.execute( "ls -1 " + path.toString() );
-            if ( exitCode == 0 ) {
+            ExecuteResult result = commandRunner.execute( "ls -1 " + path.toString() );
+            if ( result.getExitCode() == 0 ) {
                 return new ArrayEntryDirectoryStream(
-                        path, commandRunner.getStdout().split( "\n" ) );
+                        path, result.getStdout().split( "\n" ) );
             }
             else {
-                throw new IOException( "failed to list directory (" + exitCode + "): " +
-                        "out='" + commandRunner.getStderr() + "', " +
-                        "err='" + commandRunner.getStderr() + "'" );
+                throw new IOException( "failed to list directory (" + result.getExitCode() + "): " +
+                        "out='" + result.getStderr() + "', " +
+                        "err='" + result.getStderr() + "'" );
             }
         }
         catch ( JSchException e ) {
@@ -56,8 +154,10 @@ public class UnixSshFileSystemProvider extends SshFileSystemProvider {
 
     @Override
     public InputStream newInputStream( SshPath path ) throws IOException {
+        UnixSshPath unixPath = checkPath( path );
+        CommandRunner commandRunner = unixPath.getFileSystem().getCommandRunner();
         try {
-            final ChannelExecWrapper channel = getCommandRunner().open( "cat " + path.toString() );
+            final ChannelExecWrapper channel = commandRunner.open( "cat " + path.toString() );
             return new InputStream() {
                 private InputStream inputStream = channel.getInputStream();
 
@@ -80,8 +180,10 @@ public class UnixSshFileSystemProvider extends SshFileSystemProvider {
 
     @Override
     public OutputStream newOutputStream( SshPath path ) throws IOException {
+        UnixSshPath unixPath = checkPath( path );
+        CommandRunner commandRunner = unixPath.getFileSystem().getCommandRunner();
         try {
-            final ChannelExecWrapper channel = getCommandRunner().open( "cat > " + path.toString() );
+            final ChannelExecWrapper channel = commandRunner.open( "cat > " + path.toString() );
             return new OutputStream() {
                 private OutputStream outputStream = channel.getOutputStream();
 
@@ -143,11 +245,12 @@ public class UnixSshFileSystemProvider extends SshFileSystemProvider {
         }
         commandBuilder.append( "\" " ).append( path.toString() );
 
-        CommandRunner commandRunner = getCommandRunner();
+        UnixSshPath unixPath = checkPath( path );
+        CommandRunner commandRunner = unixPath.getFileSystem().getCommandRunner();
         try {
-            int exitCode = commandRunner.execute( commandBuilder.toString() );
-            if ( exitCode == 0 ) {
-                String[] values = commandRunner.getStdout().split( ASCII_UNIT_SEPARATOR );
+            ExecuteResult result = commandRunner.execute( commandBuilder.toString() );
+            if ( result.getExitCode() == 0 ) {
+                String[] values = result.getStdout().split( ASCII_UNIT_SEPARATOR );
                 Map<String, Object> map = new HashMap<String, Object>();
                 int index = 0;
                 for ( SupportedAttribute attribute : attributes ) {
@@ -156,9 +259,9 @@ public class UnixSshFileSystemProvider extends SshFileSystemProvider {
                 return map;
             }
             else {
-                throw new IOException( "failed to list directory (" + exitCode + "): " +
-                        "out='" + commandRunner.getStderr() + "', " +
-                        "err='" + commandRunner.getStderr() + "'" );
+                throw new IOException( "failed to list directory (" + result.getExitCode() + "): " +
+                        "out='" + result.getStdout() + "', " +
+                        "err='" + result.getStderr() + "'" );
             }
         }
         catch ( JSchException e ) {

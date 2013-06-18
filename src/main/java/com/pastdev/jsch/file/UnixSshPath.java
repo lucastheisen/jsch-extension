@@ -4,6 +4,8 @@ package com.pastdev.jsch.file;
 import static com.pastdev.jsch.file.spi.UnixSshFileSystemProvider.PATH_SEPARATOR;
 
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Iterator;
 
@@ -50,6 +52,11 @@ public class UnixSshPath extends AbstractSshPath {
         return (UnixSshFileSystem) super.getFileSystem();
     }
 
+    @Override
+    public String getHostname() {
+        return getFileSystem().getUri().getHost();
+    }
+
     public String getName( int index ) {
         if ( index < 0 ) {
             throw new IllegalArgumentException();
@@ -76,6 +83,11 @@ public class UnixSshPath extends AbstractSshPath {
                 Arrays.copyOfRange( parts, 0, parts.length - 1 ) );
     }
 
+    @Override
+    public int getPort() {
+        return getFileSystem().getUri().getPort();
+    }
+
     public SshPath getRoot() {
         if ( isAbsolute() ) {
             return new UnixSshPath( getFileSystem(), true );
@@ -83,6 +95,11 @@ public class UnixSshPath extends AbstractSshPath {
         else {
             return null;
         }
+    }
+
+    @Override
+    public String getUsername() {
+        return getFileSystem().getUri().getUserInfo();
     }
 
     public boolean isAbsolute() {
@@ -141,5 +158,10 @@ public class UnixSshPath extends AbstractSshPath {
         }
 
         return builder.toString();
+    }
+
+    @Override
+    public URI toUri() throws URISyntaxException {
+        return getFileSystem().getUri().resolve( toString() );
     }
 }

@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
+import com.pastdev.jsch.SessionFactory;
 
 
 public class TunnelConnection implements Closeable {
@@ -20,19 +21,21 @@ public class TunnelConnection implements Closeable {
     private int destinationPort;
     private int localPort;
     private Session session;
+    private SessionFactory sessionFactory;
 
-    public TunnelConnection( Session session, int localPort, String destinationHostname, int destinationPort ) {
-        this.session = session;
+    public TunnelConnection( SessionFactory sessionFactory, int localPort, String destinationHostname, int destinationPort ) {
+        this.sessionFactory = sessionFactory;
         this.localPort = localPort;
         this.destinationHostname = destinationHostname;
         this.destinationPort = destinationPort;
-
-        if ( session.isConnected() ) {
-            throw new IllegalStateException( "session must not be connected" );
-        }
     }
 
     public void open() throws JSchException {
+        if ( session != null && session.isConnected() ) {
+            return;
+        }
+        session = sessionFactory.newSession();
+
         logger.debug( "connecting session" );
         session.connect();
 
@@ -44,6 +47,7 @@ public class TunnelConnection implements Closeable {
         if ( session != null && session.isConnected() ) {
             session.disconnect();
         }
+        session = null;
     }
 
     @Override

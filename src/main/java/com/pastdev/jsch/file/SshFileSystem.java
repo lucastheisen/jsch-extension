@@ -2,9 +2,9 @@ package com.pastdev.jsch.file;
 
 
 import java.io.Closeable;
-import java.io.IOException;
 
 
+import com.pastdev.jsch.command.CommandRunner;
 import com.pastdev.jsch.file.spi.SshFileSystemProvider;
 
 
@@ -15,9 +15,7 @@ abstract public class SshFileSystem implements Closeable {
         this.provider = provider;
     }
 
-    public void close() throws IOException {
-        provider.close();
-    }
+    abstract public CommandRunner getCommandRunner();
 
     abstract public SshPath getPath( String first, String... more );
 

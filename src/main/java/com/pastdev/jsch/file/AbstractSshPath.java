@@ -1,10 +1,8 @@
 package com.pastdev.jsch.file;
 
+
 import java.net.URI;
 import java.net.URISyntaxException;
-
-
-import com.pastdev.jsch.SessionFactory;
 
 
 abstract public class AbstractSshPath implements SshPath {
@@ -18,26 +16,15 @@ abstract public class AbstractSshPath implements SshPath {
         return fileSystem;
     }
 
-    public String getHostname() {
-        return getFileSystem().provider().getSessionFactory().getHostname();
-    }
+    abstract public String getHostname();
 
     public String getFileName() {
         return getName( getNameCount() - 1 );
     }
 
-    public int getPort() {
-        return getFileSystem().provider().getSessionFactory().getPort();
-    }
+    abstract public int getPort();
 
-    public String getUsername() {
-        return getFileSystem().provider().getSessionFactory().getUsername();
-    }
+    abstract public String getUsername();
 
-    public URI toUri() throws URISyntaxException {
-        SessionFactory sessionFactory = getFileSystem().provider().getSessionFactory();
-        return new URI( "ssh://" + sessionFactory.getUsername() + "@"
-                + sessionFactory.getHostname() + ":" + sessionFactory.getPort()
-                + toAbsolutePath().toString() );
-    }
+    abstract public URI toUri() throws URISyntaxException;
 }

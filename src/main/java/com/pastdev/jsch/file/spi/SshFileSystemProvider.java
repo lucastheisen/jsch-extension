@@ -5,39 +5,42 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URI;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 
-import com.pastdev.jsch.SessionFactory;
-import com.pastdev.jsch.command.CommandRunner;
 import com.pastdev.jsch.file.DirectoryStream;
+import com.pastdev.jsch.file.SshFileSystem;
 import com.pastdev.jsch.file.SshPath;
 import com.pastdev.jsch.file.attribute.BasicFileAttributes;
 
 
 abstract public class SshFileSystemProvider implements Closeable {
-    private CommandRunner commandRunner;
-    private SessionFactory sessionFactory;
+    private static List<SshFileSystemProvider> installedProviders;
 
-    public SshFileSystemProvider( SessionFactory sessionFactory ) {
-        this.sessionFactory = sessionFactory;
-        this.commandRunner = new CommandRunner( sessionFactory );
+    static {
+        installedProviders = new ArrayList<SshFileSystemProvider>();
+        installedProviders.add( new UnixSshFileSystemProvider() );
     }
 
-    CommandRunner getCommandRunner() {
-        return commandRunner;
-    }
+    public SshFileSystemProvider() {}
 
-    public void close() throws IOException {
-        commandRunner.close();
-    }
+    abstract public SshPath getPath( URI uri );
 
-    public SessionFactory getSessionFactory() {
-        return sessionFactory;
+    abstract public SshFileSystem getSshFileSystem( URI uri );
+
+    abstract public String getScheme();
+
+    public static List<SshFileSystemProvider> installedProviders() {
+        return installedProviders;
     }
 
     abstract public DirectoryStream<SshPath> newDirectoryStream( SshPath path ) throws IOException;
+
+    abstract public SshFileSystem newSshFileSystem( URI uri, Map<String, ?> environment ) throws IOException;
 
     abstract public InputStream newInputStream( SshPath path ) throws IOException;
 

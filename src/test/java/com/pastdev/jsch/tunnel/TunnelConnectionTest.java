@@ -160,7 +160,7 @@ public class TunnelConnectionTest {
         final int tunnelPort = 60001;
         TunnelConnection tunnelConnection = null;
         try {
-            tunnelConnection = new TunnelConnection( sessionFactory.newSession(),
+            tunnelConnection = new TunnelConnection( sessionFactory,
                     tunnelPort, "localhost", servicePort );
             tunnelConnection.open();
 
