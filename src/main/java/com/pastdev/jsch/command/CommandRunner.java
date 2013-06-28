@@ -48,13 +48,7 @@ public class CommandRunner implements Closeable {
         int exitCode;
         ChannelExecWrapper channel = null;
         try {
-            channel = new ChannelExecWrapper( session, command, null, null, stdErr );
-
-            InputStream inputStream = channel.getInputStream();
-
-            // now read stdout cause its the only way to ensure we wait until
-            // command completes before closing channel
-            IOUtils.copy( inputStream, stdOut );
+            channel = new ChannelExecWrapper( session, command, null, stdOut, stdErr );
         }
         finally {
             exitCode = channel.close();
@@ -110,6 +104,7 @@ public class CommandRunner implements Closeable {
 
     public class ChannelExecWrapper {
         private ChannelExec channel;
+        private String command;
         private OutputStream passedInStdErr;
         private InputStream passedInStdIn;
         private OutputStream passedInStdOut;
@@ -118,6 +113,7 @@ public class CommandRunner implements Closeable {
         private InputStream stdOut;
 
         private ChannelExecWrapper( Session session, String command, InputStream stdIn, OutputStream stdOut, OutputStream stdErr ) throws JSchException, IOException {
+            this.command = command;
             this.channel = (ChannelExec) session.openChannel( "exec" );
             if ( stdIn != null ) {
                 this.passedInStdIn = stdIn;
@@ -164,6 +160,7 @@ public class CommandRunner implements Closeable {
                     }
                 }
             }
+            logger.trace( "`{}` exit {}", command, exitCode );
             return exitCode;
         }
 
