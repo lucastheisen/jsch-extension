@@ -8,17 +8,39 @@
   <packaging>jar</packaging>
 
   <name>jsch-extension</name>
-  <url>http://pastdev.com</url>
+  <description>A set of extensions on top of JSch providing a full SCP protocol implementation, tunneling including multi-hop, a Java 7 FileSystem like implementation for Java 6 and remote command execution</description>
+  <url>https://github.com/lucastheisen/jsch-extension</url>
 
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-  </properties>
-  
+  <licenses>
+    <license>
+      <name>MIT license (also X11)</name>
+      <url>http://www.spdx.org/licenses/MIT</url>
+    </license>
+  </licenses>
+
   <scm>
     <connection>scm:git:git://github.com/lucastheisen/jsch-extension.git</connection>
     <developerConnection>scm:git:git@github.com:lucastheisen/jsch-extension.git</developerConnection>
     <url>http://github.com/lucastheisen/jsch-extension</url>
   </scm>
+
+  <organization>
+    <name>pastdev.com</name>
+    <url>http://pastdev.com</url>
+  </organization>
+
+  <developers>
+    <developer>
+      <id>lucastheisen</id>
+      <name>Lucas Theisen</name>
+      <email>lucastheisen@pastdev.com</email>
+      <organization>pastdev.com</organization>
+    </developer>
+  </developers>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
 
   <dependencies>
     <dependency>
@@ -45,7 +67,7 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-  
+
   <build>
     <finalName>${project.artifactId}</finalName>
   </build>
