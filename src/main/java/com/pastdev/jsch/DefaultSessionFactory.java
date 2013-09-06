@@ -1,7 +1,10 @@
 package com.pastdev.jsch;
 
 
+import java.io.InputStream;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 import com.jcraft.jsch.JSch;
@@ -16,6 +19,7 @@ import com.jcraft.jsch.Session;
  * @author Lucas Theisen
  */
 public class DefaultSessionFactory implements SessionFactory {
+    private Map<String, String> config;
     private String hostname;
     private JSch jsch;
     private int port = SSH_PORT;
@@ -56,6 +60,11 @@ public class DefaultSessionFactory implements SessionFactory {
 
     public Session newSession() throws JSchException {
         Session session = jsch.getSession( username, hostname, port );
+        if ( config != null ) {
+            for ( String key : config.keySet() ) {
+                session.setConfig( key, config.get( key ) );
+            }
+        }
         if ( proxy != null ) {
             session.setProxy( proxy );
         }
@@ -69,6 +78,13 @@ public class DefaultSessionFactory implements SessionFactory {
                 return new DefaultSessionFactory( jsch, username, hostname, port, proxy );
             }
         };
+    }
+    
+    public void setConfig( String key, String value ) {
+        if ( config == null ) {
+            config = new HashMap<String, String>();
+        }
+        config.put( key, value );
     }
 
     public void setHostname( String hostname ) {
@@ -87,6 +103,10 @@ public class DefaultSessionFactory implements SessionFactory {
         }
     }
 
+    public void setKnownHosts( InputStream knownHosts ) throws JSchException {
+        jsch.setKnownHosts( knownHosts );
+    }
+    
     public void setKnownHosts( String knownHosts ) throws JSchException {
         jsch.setKnownHosts( knownHosts );
     }

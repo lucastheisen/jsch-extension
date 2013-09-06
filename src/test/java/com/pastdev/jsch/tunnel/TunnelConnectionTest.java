@@ -39,7 +39,7 @@ public class TunnelConnectionTest {
 
     private String expected = "This will be amazing if it works";
     private StringBuffer serviceBuffer;
-    private int servicePort = 60002;
+    private int servicePort = 59703;
     private Thread serviceThread;
 
     private final ReentrantLock serviceLock = new ReentrantLock();
@@ -157,14 +157,14 @@ public class TunnelConnectionTest {
 
     @Test
     public void testConnection() {
-        final int tunnelPort = 60001;
+        final int tunnelPort1 = 59701;
         TunnelConnection tunnelConnection = null;
         try {
             tunnelConnection = new TunnelConnection( sessionFactory,
-                    tunnelPort, "localhost", servicePort );
+                    new Tunnel( tunnelPort1, "localhost", servicePort ) );
             tunnelConnection.open();
 
-            assertEquals( expected, writeToService( tunnelPort, expected ) );
+            assertEquals( expected, writeToService( tunnelPort1, expected ) );
         }
         catch ( Exception e ) {
             logger.error( "failed for {}: {}", tunnelConnection, e );

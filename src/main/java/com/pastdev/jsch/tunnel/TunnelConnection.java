@@ -17,17 +17,18 @@ import com.pastdev.jsch.SessionFactory;
 public class TunnelConnection implements Closeable {
     private static Logger logger = LoggerFactory.getLogger( TunnelConnection.class );
 
-    private String destinationHostname;
-    private int destinationPort;
-    private int localPort;
+    private Tunnel[] tunnels;
     private Session session;
     private SessionFactory sessionFactory;
 
     public TunnelConnection( SessionFactory sessionFactory, int localPort, String destinationHostname, int destinationPort ) {
         this.sessionFactory = sessionFactory;
-        this.localPort = localPort;
-        this.destinationHostname = destinationHostname;
-        this.destinationPort = destinationPort;
+        this.tunnels = new Tunnel[] { new Tunnel( localPort, destinationHostname, destinationPort ) };
+    }
+    
+    public TunnelConnection( SessionFactory sessionFactory, Tunnel... tunnels ) {
+        this.sessionFactory = sessionFactory;
+        this.tunnels = tunnels;
     }
 
     public void open() throws JSchException {
@@ -39,7 +40,13 @@ public class TunnelConnection implements Closeable {
         logger.debug( "connecting session" );
         session.connect();
 
-        session.setPortForwardingL( localPort, destinationHostname, destinationPort );
+        for ( Tunnel tunnel : tunnels ) {
+            logger.debug( "adding tunnel {}", tunnel );
+            session.setPortForwardingL( 
+                    tunnel.getLocalPort(), 
+                    tunnel.getDestinationHostname(), 
+                    tunnel.getDestinationPort() );
+        }
         logger.info( "forwarding {}", this );
     }
 
@@ -52,6 +59,10 @@ public class TunnelConnection implements Closeable {
 
     @Override
     public String toString() {
-        return localPort + ":" + destinationHostname + ":" + destinationPort;
+        StringBuilder builder = new StringBuilder( sessionFactory.toString() );
+        for ( Tunnel tunnel : tunnels ) {
+            builder.append( " -L " ).append( tunnel );
+        }
+        return builder.toString();
     }
 }
