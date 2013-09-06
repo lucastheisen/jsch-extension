@@ -72,12 +72,18 @@ public class DefaultSessionFactory implements SessionFactory {
     }
 
     public SessionFactoryBuilder newSessionFactoryBuilder() throws JSchException {
-        return new SessionFactoryBuilder( jsch, username, hostname, port, proxy ) {
+        return new SessionFactoryBuilder( jsch, username, hostname, port, proxy, config ) {
             @Override
             public SessionFactory build() {
-                return new DefaultSessionFactory( jsch, username, hostname, port, proxy );
+                DefaultSessionFactory sessionFactory = new DefaultSessionFactory( jsch, username, hostname, port, proxy );
+                sessionFactory.config = config;
+                return sessionFactory;
             }
         };
+    }
+    
+    public void setConfig( Map<String, String> config ) {
+        this.config = config;
     }
     
     public void setConfig( String key, String value ) {
