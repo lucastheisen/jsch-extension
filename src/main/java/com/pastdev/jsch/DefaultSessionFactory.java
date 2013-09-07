@@ -53,6 +53,10 @@ public class DefaultSessionFactory implements SessionFactory {
     public int getPort() {
         return port;
     }
+    
+    public Proxy getProxy() {
+        return proxy;
+    }
 
     public String getUsername() {
         return username;
@@ -131,6 +135,7 @@ public class DefaultSessionFactory implements SessionFactory {
     
     @Override
     public String toString() {
-        return "ssh://" + username + "@" + hostname + ":" + port;
+        return (proxy == null ? "" : proxy.toString() + " " ) +
+                "ssh://" + username + "@" + hostname + ":" + port;
     }
 }

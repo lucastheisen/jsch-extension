@@ -17,6 +17,8 @@ public interface SessionFactory {
 
     public int getPort();
 
+    public Proxy getProxy();
+
     public String getUsername();
 
     public Session newSession() throws JSchException;

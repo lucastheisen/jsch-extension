@@ -24,9 +24,11 @@ public class SshProxy implements Proxy {
     private Channel channel;
     private InputStream inputStream;
     private OutputStream outputStream;
+    private SessionFactory sessionFactory;
     private Session session;
 
     public SshProxy( SessionFactory sessionFactory ) throws JSchException {
+        this.sessionFactory = sessionFactory;
         this.session = sessionFactory.newSession();
     }
 
@@ -61,6 +63,6 @@ public class SshProxy implements Proxy {
 
     @Override
     public String toString() {
-        return "ssh proxy " + session.getUserName() + "@" + session.getHost() + " on port " + session.getPort();
+        return "PROXY(" + sessionFactory.toString() + ")";
     }
 }

@@ -3,6 +3,8 @@ package com.pastdev.jsch.tunnel;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 
 import org.slf4j.Logger;
@@ -17,16 +19,19 @@ import com.pastdev.jsch.SessionFactory;
 public class TunnelConnection implements Closeable {
     private static Logger logger = LoggerFactory.getLogger( TunnelConnection.class );
 
-    private Tunnel[] tunnels;
+    private Iterable<Tunnel> tunnels;
     private Session session;
     private SessionFactory sessionFactory;
 
     public TunnelConnection( SessionFactory sessionFactory, int localPort, String destinationHostname, int destinationPort ) {
-        this.sessionFactory = sessionFactory;
-        this.tunnels = new Tunnel[] { new Tunnel( localPort, destinationHostname, destinationPort ) };
+        this( sessionFactory, new Tunnel( localPort, destinationHostname, destinationPort ) );
     }
-    
+
     public TunnelConnection( SessionFactory sessionFactory, Tunnel... tunnels ) {
+        this( sessionFactory, Arrays.asList( tunnels ) );
+    }
+
+    public TunnelConnection( SessionFactory sessionFactory, List<Tunnel> tunnels ) {
         this.sessionFactory = sessionFactory;
         this.tunnels = tunnels;
     }
@@ -42,10 +47,19 @@ public class TunnelConnection implements Closeable {
 
         for ( Tunnel tunnel : tunnels ) {
             logger.debug( "adding tunnel {}", tunnel );
-            session.setPortForwardingL( 
-                    tunnel.getLocalPort(), 
-                    tunnel.getDestinationHostname(), 
-                    tunnel.getDestinationPort() );
+            if ( tunnel.getLocalAlias() == null ) {
+                session.setPortForwardingL(
+                        tunnel.getLocalPort(),
+                        tunnel.getDestinationHostname(),
+                        tunnel.getDestinationPort() );
+            }
+            else {
+                session.setPortForwardingL(
+                        tunnel.getLocalAlias(),
+                        tunnel.getLocalPort(),
+                        tunnel.getDestinationHostname(),
+                        tunnel.getDestinationPort() );
+            }
         }
         logger.info( "forwarding {}", this );
     }
