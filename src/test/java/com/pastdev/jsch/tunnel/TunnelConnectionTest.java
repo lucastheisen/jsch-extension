@@ -87,6 +87,8 @@ public class TunnelConnectionTest {
             defaultSessionFactory.setIdentityFromPrivateKey( privateKey );
         }
         catch ( JSchException e ) {
+        	logger.error( "Failed to configure default session, skipping tests: {}", e.getMessage() );
+        	logger.debug( "Failed to configure default session, skipping tests:", e );
             Assume.assumeNoException( e );
         }
         sessionFactory = defaultSessionFactory;
