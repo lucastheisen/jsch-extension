@@ -1,4 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -49,7 +50,9 @@
     <jsch-agentproxy.version>0.0.6</jsch-agentproxy.version>
     <junit.version>4.11</junit.version>
     <logback.version>1.0.13</logback.version>
+    <mysql.version>5.1.26</mysql.version>
     <slf4j.version>1.7.5</slf4j.version>
+    <tomcat-jdbc.version>7.0.47</tomcat-jdbc.version>
   </properties>
 
   <dependencies>
@@ -84,6 +87,20 @@
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
       <version>${logback.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>mysql</groupId>
+      <artifactId>mysql-connector-java</artifactId>
+      <version>${mysql.version}</version>
+      <type>jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.tomcat</groupId>
+      <artifactId>tomcat-jdbc</artifactId>
+      <version>${tomcat-jdbc.version}</version>
+      <type>jar</type>
       <scope>test</scope>
     </dependency>
   </dependencies>

@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
+import com.pastdev.jsch.IOUtils;
 import com.pastdev.jsch.SessionFactory;
 
 
@@ -36,8 +37,19 @@ public class TunnelConnection implements Closeable {
         this.tunnels = tunnels;
     }
 
-    public void open() throws JSchException {
+    public void close() throws IOException {
         if ( session != null && session.isConnected() ) {
+            session.disconnect();
+        }
+        session = null;
+    }
+    
+    public boolean isOpen() {
+        return session != null && session.isConnected();
+    }
+
+    public void open() throws JSchException {
+        if ( isOpen() ) {
             return;
         }
         session = sessionFactory.newSession();
@@ -63,12 +75,10 @@ public class TunnelConnection implements Closeable {
         }
         logger.info( "forwarding {}", this );
     }
-
-    public void close() throws IOException {
-        if ( session != null && session.isConnected() ) {
-            session.disconnect();
-        }
-        session = null;
+    
+    public void reopen() throws JSchException {
+        IOUtils.closeAndLogException( this );
+        open();
     }
 
     @Override
