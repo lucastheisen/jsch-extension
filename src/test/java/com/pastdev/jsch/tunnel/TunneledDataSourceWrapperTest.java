@@ -10,6 +10,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 
@@ -77,10 +79,8 @@ public class TunneledDataSourceWrapperTest {
 
         String knownHosts = properties.getProperty( "ssh.knownHosts" );
         String privateKey = properties.getProperty( "ssh.privateKey" );
-        String username = properties.getProperty( "datasource.ssh.username" );
-        String hostname = "localhost";
 
-        sessionFactory = new DefaultSessionFactory( username, hostname, 22 );
+        sessionFactory = new DefaultSessionFactory();
         try {
             sessionFactory.setKnownHosts( knownHosts );
             sessionFactory.setIdentityFromPrivateKey( privateKey );
@@ -91,17 +91,20 @@ public class TunneledDataSourceWrapperTest {
     }
 
     @Test
-    public void testTunneledDataSourceConnection() {
+    public void testTunneledDataSourceConnection() throws JSchException, IOException {
         assertTrue( true );
         DataSource dataSource = new org.apache.tomcat.jdbc.pool.DataSource();
         dataSource.setDriverClassName( properties.getProperty( "dataSource.driver" ) );
         dataSource.setPassword( properties.getProperty( "dataSource.password" ) );
         dataSource.setUsername( properties.getProperty( "dataSource.username" ) );
         dataSource.setUrl( properties.getProperty( "dataSource.tunnel.url" ) );
+        List<String> pathAndSpecList = new ArrayList<String>();
+        pathAndSpecList.add( properties.getProperty( "dataSource.tunnel.pathAndSpec" ) );
+
         TunneledDataSourceWrapper wrapper = new TunneledDataSourceWrapper(
-                new TunnelConnection(
+                new TunnelConnectionManager(
                         sessionFactory,
-                        new Tunnel( properties.getProperty( "dataSource.tunnel.spec" ) ) ),
+                        pathAndSpecList ),
                 dataSource );
 
         try {
