@@ -100,7 +100,7 @@ public class TunnelConnectionManager implements Closeable {
     public void setTunnelConnections( Iterable<String> pathAndSpecList ) throws JSchException {
         Map<String, Set<Tunnel>> tunnelMap = new HashMap<String, Set<Tunnel>>();
         for ( String pathAndSpecString : pathAndSpecList ) {
-            String[] pathAndSpec = pathAndSpecString.split( "\\|" );
+            String[] pathAndSpec = pathAndSpecString.trim().split( "\\|" );
             Set<Tunnel> tunnelList = tunnelMap.get( pathAndSpec[0] );
             if ( tunnelList == null ) {
                 tunnelList = new HashSet<Tunnel>();
