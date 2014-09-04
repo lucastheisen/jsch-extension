@@ -32,10 +32,12 @@ public class TunnelConnectionManager implements Closeable {
 
     private SessionFactory baseSessionFactory;
     private List<TunnelConnection> tunnelConnections;
+    private Map<String, Tunnel> routes;
 
     public TunnelConnectionManager( SessionFactory baseSessionFactory ) throws JSchException, IOException {
         logger.debug( "Creating TunnelConnectionManager" );
         this.baseSessionFactory = baseSessionFactory;
+        this.routes = new HashMap<String, Tunnel>();
     }
 
     public TunnelConnectionManager( SessionFactory baseSessionFactory, Iterable<String> pathAndSpecList ) throws JSchException, IOException {
@@ -57,11 +59,23 @@ public class TunnelConnectionManager implements Closeable {
             }
         }
     }
+    
+    public Tunnel getTunnelTo( String destinationHostname, int destinationPort ) {
+        return routes.get( routeKey( destinationHostname, destinationPort ) );
+    }
 
     public void open() throws JSchException {
         for ( TunnelConnection tunnelConnection : tunnelConnections ) {
             tunnelConnection.open();
         }
+    }
+
+    private String routeKey( Tunnel tunnel ) {
+        return routeKey( tunnel.getDestinationHostname(), tunnel.getDestinationPort() );
+    }
+
+    private String routeKey( String destinationHostname, int destinationPort ) {
+        return destinationHostname + ":" + destinationPort;
     }
 
     public void setTunnelConnectionsFromFile( File tunnelsConfig ) throws IOException, JSchException {
@@ -106,7 +120,10 @@ public class TunnelConnectionManager implements Closeable {
                 tunnelList = new HashSet<Tunnel>();
                 tunnelMap.put( pathAndSpec[0], tunnelList );
             }
-            tunnelList.add( new Tunnel( pathAndSpec[1] ) );
+            
+            Tunnel tunnel = new Tunnel( pathAndSpec[1] );
+            routes.put( routeKey( tunnel ), tunnel );
+            tunnelList.add( tunnel );
         }
 
         tunnelConnections = new ArrayList<TunnelConnection>();

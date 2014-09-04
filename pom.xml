@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.sonatype.oss</groupId>
     <artifactId>oss-parent</artifactId>
-    <version>7</version>
+    <version>9</version>
   </parent>
 
   <groupId>com.pastdev</groupId>
@@ -45,7 +45,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <jsch.version>0.1.50</jsch.version>
+    <jsch.version>0.1.51</jsch.version>
     <jsch-agentproxy.version>0.0.6</jsch-agentproxy.version>
     <junit.version>4.11</junit.version>
     <logback.version>1.0.13</logback.version>
@@ -112,9 +112,14 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.1</version>
         <configuration>
-          <source>1.6</source>
-          <target>1.6</target>
+          <source>1.7</source>
+          <target>1.7</target>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-release-plugin</artifactId>
+        <version>2.5</version>
       </plugin>
     </plugins>
   </build>
