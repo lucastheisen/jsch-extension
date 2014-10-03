@@ -4,7 +4,9 @@ package com.pastdev.jsch.tunnel;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 import org.slf4j.Logger;
@@ -20,9 +22,10 @@ import com.pastdev.jsch.SessionFactory;
 public class TunnelConnection implements Closeable {
     private static Logger logger = LoggerFactory.getLogger( TunnelConnection.class );
 
-    private Iterable<Tunnel> tunnels;
+    private Map<String, Tunnel> tunnelsByDestination;
     private Session session;
     private SessionFactory sessionFactory;
+    private Iterable<Tunnel> tunnels;
 
     public TunnelConnection( SessionFactory sessionFactory, int localPort, String destinationHostname, int destinationPort ) {
         this( sessionFactory, new Tunnel( localPort, destinationHostname, destinationPort ) );
@@ -35,6 +38,11 @@ public class TunnelConnection implements Closeable {
     public TunnelConnection( SessionFactory sessionFactory, List<Tunnel> tunnels ) {
         this.sessionFactory = sessionFactory;
         this.tunnels = tunnels;
+        this.tunnelsByDestination = new HashMap<String, Tunnel>();
+
+        for ( Tunnel tunnel : tunnels ) {
+            tunnelsByDestination.put( hostnamePortKey( tunnel ), tunnel );
+        }
     }
 
     public void close() throws IOException {
@@ -42,6 +50,24 @@ public class TunnelConnection implements Closeable {
             session.disconnect();
         }
         session = null;
+
+        // unnecessary, but seems right to undo what we did
+        for ( Tunnel tunnel : tunnels ) {
+            tunnel.setAssignedLocalPort( 0 );
+        }
+    }
+    
+    public Tunnel getTunnel( String hostname, int port ) {
+        return tunnelsByDestination.get( hostnamePortKey( hostname, port ) );
+    }
+    
+    private String hostnamePortKey( Tunnel tunnel ) {
+        return hostnamePortKey( tunnel.getDestinationHostname(), 
+                tunnel.getDestinationPort() );
+    }
+
+    private String hostnamePortKey( String hostname, int port ) {
+        return hostname + ":" + port;
     }
     
     public boolean isOpen() {
@@ -58,20 +84,22 @@ public class TunnelConnection implements Closeable {
         session.connect();
 
         for ( Tunnel tunnel : tunnels ) {
-            logger.debug( "adding tunnel {}", tunnel );
+            int assignedPort = 0;
             if ( tunnel.getLocalAlias() == null ) {
-                session.setPortForwardingL(
+                assignedPort = session.setPortForwardingL(
                         tunnel.getLocalPort(),
                         tunnel.getDestinationHostname(),
                         tunnel.getDestinationPort() );
             }
             else {
-                session.setPortForwardingL(
+                assignedPort = session.setPortForwardingL(
                         tunnel.getLocalAlias(),
                         tunnel.getLocalPort(),
                         tunnel.getDestinationHostname(),
                         tunnel.getDestinationPort() );
             }
+            tunnel.setAssignedLocalPort( assignedPort );
+            logger.debug( "added tunnel {}", tunnel );
         }
         logger.info( "forwarding {}", this );
     }

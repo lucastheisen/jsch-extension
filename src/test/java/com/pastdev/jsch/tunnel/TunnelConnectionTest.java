@@ -87,8 +87,8 @@ public class TunnelConnectionTest {
             defaultSessionFactory.setIdentityFromPrivateKey( privateKey );
         }
         catch ( JSchException e ) {
-        	logger.error( "Failed to configure default session, skipping tests: {}", e.getMessage() );
-        	logger.debug( "Failed to configure default session, skipping tests:", e );
+            logger.error( "Failed to configure default session, skipping tests: {}", e.getMessage() );
+            logger.debug( "Failed to configure default session, skipping tests:", e );
             Assume.assumeNoException( e );
         }
         sessionFactory = defaultSessionFactory;
@@ -179,11 +179,35 @@ public class TunnelConnectionTest {
         }
     }
 
+    @Test
+    public void testDynamicPortConnection() {
+        TunnelConnection tunnelConnection = null;
+        try {
+            String hostname = "localhost";
+            tunnelConnection = new TunnelConnection( sessionFactory,
+                    new Tunnel( hostname, servicePort ) );
+            tunnelConnection.open();
+
+            assertEquals( expected, writeToService(
+                    tunnelConnection.getTunnel( hostname, servicePort )
+                            .getAssignedLocalPort(), expected ) );
+        }
+        catch ( Exception e ) {
+            logger.error( "failed for {}: {}", tunnelConnection, e );
+            logger.debug( "failed:", e );
+            fail( e.getMessage() );
+        }
+        finally {
+            logger.debug( "close" );
+            IOUtils.closeAndLogException( tunnelConnection );
+        }
+    }
+
     private String writeToService( int port, String data ) {
         Socket socket = null;
         serviceLock.lock();
         try {
-            logger.debug( "connecting to service on port: {}", servicePort );
+            logger.debug( "connecting to service through port: {}", port );
             socket = new Socket( "localhost", port );
             logger.trace( "connected" );
             serviceConnected.signalAll();

@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -32,15 +33,17 @@ public class TunnelConnectionManager implements Closeable {
 
     private SessionFactory baseSessionFactory;
     private List<TunnelConnection> tunnelConnections;
-    private Map<String, Tunnel> routes;
 
-    public TunnelConnectionManager( SessionFactory baseSessionFactory ) throws JSchException, IOException {
+    public TunnelConnectionManager( SessionFactory baseSessionFactory ) throws JSchException {
         logger.debug( "Creating TunnelConnectionManager" );
         this.baseSessionFactory = baseSessionFactory;
-        this.routes = new HashMap<String, Tunnel>();
     }
 
-    public TunnelConnectionManager( SessionFactory baseSessionFactory, Iterable<String> pathAndSpecList ) throws JSchException, IOException {
+    public TunnelConnectionManager( SessionFactory baseSessionFactory, String... pathAndSpecList ) throws JSchException {
+        this( baseSessionFactory, Arrays.asList( pathAndSpecList ) );
+    }
+
+    public TunnelConnectionManager( SessionFactory baseSessionFactory, Iterable<String> pathAndSpecList ) throws JSchException {
         this( baseSessionFactory );
         setTunnelConnections( pathAndSpecList );
     }
@@ -60,22 +63,23 @@ public class TunnelConnectionManager implements Closeable {
         }
     }
     
-    public Tunnel getTunnelTo( String destinationHostname, int destinationPort ) {
-        return routes.get( routeKey( destinationHostname, destinationPort ) );
+    public Tunnel getTunnel( String destinationHostname, int destinationPort ) {
+        // might be better to cache, but dont anticipate massive numbers
+        // of tunnel connections...
+        for ( TunnelConnection tunnelConnection : tunnelConnections ) {
+            Tunnel tunnel = tunnelConnection.getTunnel( 
+                    destinationHostname, destinationPort );
+            if ( tunnel != null ) {
+                return tunnel;
+            }
+        }
+        return null;
     }
 
     public void open() throws JSchException {
         for ( TunnelConnection tunnelConnection : tunnelConnections ) {
             tunnelConnection.open();
         }
-    }
-
-    private String routeKey( Tunnel tunnel ) {
-        return routeKey( tunnel.getDestinationHostname(), tunnel.getDestinationPort() );
-    }
-
-    private String routeKey( String destinationHostname, int destinationPort ) {
-        return destinationHostname + ":" + destinationPort;
     }
 
     public void setTunnelConnectionsFromFile( File tunnelsConfig ) throws IOException, JSchException {
@@ -120,10 +124,7 @@ public class TunnelConnectionManager implements Closeable {
                 tunnelList = new HashSet<Tunnel>();
                 tunnelMap.put( pathAndSpec[0], tunnelList );
             }
-            
-            Tunnel tunnel = new Tunnel( pathAndSpec[1] );
-            routes.put( routeKey( tunnel ), tunnel );
-            tunnelList.add( tunnel );
+            tunnelList.add( new Tunnel( pathAndSpec[1] ) );
         }
 
         tunnelConnections = new ArrayList<TunnelConnection>();
