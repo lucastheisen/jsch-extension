@@ -9,6 +9,7 @@ import java.io.OutputStream;
 import java.nio.charset.Charset;
 
 
+import com.jcraft.jsch.ChannelSftp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,7 +78,16 @@ public class CommandRunner implements Closeable {
         logger.debug( "executing {} on {}", command, sessionFactory );
         return new ChannelExecWrapper( getSession(), command, null, null, null );
     }
-    
+
+    /**
+     * Get a new sftp channel
+     * @return An sftp channel object
+     * @throws JSchException If an error occurs while opening the channel
+     */
+    public ChannelSftp getSftpChannel() throws JSchException {
+        return (ChannelSftp) getSession().openChannel("sftp");
+    }
+
     public class ExecuteResult {
         private int exitCode;
         private String stderr;
