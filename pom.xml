@@ -46,7 +46,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <jsch.version>0.1.51</jsch.version>
+    <jsch.version>0.1.53</jsch.version>
     <jsch-agentproxy.version>0.0.6</jsch-agentproxy.version>
     <junit.version>4.11</junit.version>
     <logback.version>1.0.13</logback.version>
