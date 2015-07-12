@@ -65,8 +65,7 @@ public class TunneledDataSourceWrapper implements DataSource, Closeable {
 
     @Override
     public java.util.logging.Logger getParentLogger() throws SQLFeatureNotSupportedException {
-        // TODO Auto-generated method stub
-        return null;
+    	return dataSource.getParentLogger();
     }
 
     @Override

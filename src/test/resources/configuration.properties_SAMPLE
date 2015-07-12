@@ -1,6 +1,12 @@
-ssh.knownHosts=C:/Cygwin/home/ltheisen/.ssh/known_hosts
-ssh.privateKey=C:/Cygwin/home/ltheisen/.ssh/id_dsa
+ssh.knownHosts=C:/Users/ltheisen/.ssh/known_hosts
+ssh.privateKey=C:/Users/ltheisen/.ssh/id_dsa
 scp.out.test.scpPath=/tmp
 scp.out.test.filesystemPath=C:/Cygwin/tmp
 scp.out.test.username=ltheisen
 scp.out.test.port=22
+dataSource.driver=com.mysql.jdbc.Driver
+dataSource.password=
+dataSource.username=
+dataSource.url=jdbc:mysql://localhost:3306
+dataSource.tunnel.pathAndSpec=ltheisen@localhost|54354:localhost:3306
+dataSource.tunnel.url=jdbc:mysql://localhost:54354
