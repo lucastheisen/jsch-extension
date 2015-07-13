@@ -18,30 +18,26 @@ import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import com.pastdev.jsch.IOUtils;
 import com.pastdev.jsch.SessionFactory;
+import com.pastdev.jsch.SessionManager;
 
 
 public class CommandRunner implements Closeable {
     private static Logger logger = LoggerFactory.getLogger( CommandRunner.class );
     private static final Charset UTF8 = Charset.forName( "UTF-8" );
 
-    private final SessionFactory sessionFactory;
-    private Session session;
-
-    public void close() throws IOException {
-        if ( session != null && session.isConnected() ) {
-            session.disconnect();
-        }
-        session = null;
-    }
+    private final SessionManager sessionManager;
 
     public CommandRunner( SessionFactory sessionFactory ) {
-        this.sessionFactory = sessionFactory;
-        this.session = null;
+        this.sessionManager = new SessionManager( sessionFactory );
+    }
+
+    public void close() throws IOException {
+        sessionManager.close();
     }
 
     public ExecuteResult execute( String command ) throws JSchException, IOException {
-        logger.debug( "executing {} on {}", command, sessionFactory );
-        Session session = getSession();
+        logger.debug( "executing {} on {}", command, sessionManager );
+        Session session = sessionManager.getSession();
 
         ByteArrayOutputStream stdErr = new ByteArrayOutputStream();
         ByteArrayOutputStream stdOut = new ByteArrayOutputStream();
@@ -54,30 +50,16 @@ public class CommandRunner implements Closeable {
             exitCode = channel.close();
         }
 
-        return new ExecuteResult( exitCode, 
-                new String( stdOut.toByteArray(), UTF8 ), 
-                new String( stdErr.toByteArray(), UTF8 ));
-    }
-
-    private Session getSession() throws JSchException {
-        if ( session == null || !session.isConnected() ) {
-            logger.debug( "getting new session from factory session" );
-            session = sessionFactory.newSession();
-            logger.debug( "connecting session" );
-            session.connect();
-        }
-        return session;
-    }
-
-    public SessionFactory getSessionFactory() {
-        return sessionFactory;
+        return new ExecuteResult( exitCode,
+                new String( stdOut.toByteArray(), UTF8 ),
+                new String( stdErr.toByteArray(), UTF8 ) );
     }
 
     public ChannelExecWrapper open( String command ) throws JSchException, IOException {
-        logger.debug( "executing {} on {}", command, sessionFactory );
-        return new ChannelExecWrapper( getSession(), command, null, null, null );
+        logger.debug( "executing {} on {}", command, sessionManager );
+        return new ChannelExecWrapper( sessionManager.getSession(), command, null, null, null );
     }
-    
+
     public class ExecuteResult {
         private int exitCode;
         private String stderr;
@@ -114,7 +96,7 @@ public class CommandRunner implements Closeable {
 
         private ChannelExecWrapper( Session session, String command, InputStream stdIn, OutputStream stdOut, OutputStream stdErr ) throws JSchException, IOException {
             this.command = command;
-            this.channel = (ChannelExec) session.openChannel( "exec" );
+            this.channel = (ChannelExec)session.openChannel( "exec" );
             if ( stdIn != null ) {
                 this.passedInStdIn = stdIn;
                 this.channel.setInputStream( stdIn );
@@ -151,7 +133,8 @@ public class CommandRunner implements Closeable {
                         try {
                             Thread.sleep( 100 );
                         }
-                        catch ( InterruptedException e ) {}
+                        catch ( InterruptedException e ) {
+                        }
                     }
                 }
                 finally {
