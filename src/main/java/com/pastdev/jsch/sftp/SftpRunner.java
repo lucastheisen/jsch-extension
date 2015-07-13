@@ -31,6 +31,7 @@ public class SftpRunner implements Closeable {
         try {
             channelSftp = (ChannelSftp)sessionManager.getSession()
                 .openChannel( CHANNEL_SFTP );
+            channelSftp.connect();
             sftp.run( channelSftp );
         }
         finally {
