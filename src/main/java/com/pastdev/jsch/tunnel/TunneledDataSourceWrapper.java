@@ -16,11 +16,25 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
+/**
+ * Wraps a {@link javax.sql.DataSource DataSource}, adding the ability to
+ * tunnel over ssh for the connection.
+ */
 public class TunneledDataSourceWrapper implements DataSource, Closeable {
     private static Logger log = LoggerFactory.getLogger( TunneledDataSourceWrapper.class );
     private DataSource dataSource;
     private TunnelConnectionManager tunnel;
 
+    /**
+     * Creates a DataSource that will ensure all of the tunnels specified by
+     * <code>tunnel</code> are opened when datasource connections are created, 
+     * and closed when the datasource is closed.
+     * 
+     * @param tunnel The tunnel manager
+     * @param dataSource The datasource that requires tunneled connections
+     * 
+     * @see com.pastdev.jsch.tunnel.TunnelConnectionManager
+     */
     public TunneledDataSourceWrapper( TunnelConnectionManager tunnel, DataSource dataSource ) {
         this.tunnel = tunnel;
         this.dataSource = dataSource;
