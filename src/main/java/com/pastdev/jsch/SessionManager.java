@@ -11,15 +11,26 @@ import org.slf4j.LoggerFactory;
 
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
-import com.pastdev.jsch.SessionFactory;
 
 
+/**
+ * Provides a convenience wrapper to sessions that maintains the session
+ * connection for you. Every time you obtain your session through a call to
+ * {@link #getSession()} the current session will have its connection verified,
+ * and will reconnect if necessary.
+ */
 public class SessionManager implements Closeable {
     private static final Logger logger = LoggerFactory.getLogger( SessionManager.class );
 
     private final SessionFactory sessionFactory;
     private Session session;
-    
+
+    /**
+     * Creates a SessionManager for the supplied <code>sessionFactory</code>.
+     * 
+     * @param sessionFactory
+     *            The session factory
+     */
     public SessionManager( SessionFactory sessionFactory ) {
         this.sessionFactory = sessionFactory;
     }
@@ -32,6 +43,14 @@ public class SessionManager implements Closeable {
         session = null;
     }
 
+    /**
+     * Returns a connected session.
+     * 
+     * @return A connected session
+     * 
+     * @throws JSchException
+     *             If unable to connect the session
+     */
     public Session getSession() throws JSchException {
         if ( session == null || !session.isConnected() ) {
             logger.debug( "getting new session from factory session" );
@@ -42,10 +61,15 @@ public class SessionManager implements Closeable {
         return session;
     }
 
+    /**
+     * Returns the session factory used by this manager.
+     * 
+     * @return The session factory
+     */
     public SessionFactory getSessionFactory() {
         return sessionFactory;
     }
-    
+
     @Override
     public String toString() {
         return sessionFactory.toString();

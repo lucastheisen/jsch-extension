@@ -28,9 +28,24 @@ import com.jcraft.jsch.agentproxy.RemoteIdentityRepository;
 
 
 /**
- * Similar to JSch, but with methods friendlier to dependency injection.
+ * The default implementation of {@link com.pastdev.jsch.SessionFactory
+ * SessionFactory}. This class provides sane defaults for all
+ * <i>conventional</i> configuration including
  * 
- * @author Lucas Theisen
+ * <p style="margin-left: 20px;">
+ * <b>username</b>: System property <code>user.name</code> <br />
+ * <b>hostname</b>: localhost <br />
+ * <b>port</b>: 22 <br />
+ * <b>.ssh directory:</b> System property <code>jsch.dotSsh</code>, or system
+ * property <code>user.home</code> concatenated with <code>"/.ssh"</code> <br />
+ * <b>known hosts:</b> System property <code>jsch.knownHosts.file</code> or,
+ * .ssh directory concatenated with <code>"/known_hosts"</code>. <br />
+ * <b>private keys:</b> First checks for an agent proxy using
+ * {@link ConnectorFactory#createConnector()}, then system property
+ * <code>jsch.privateKey.files</code> split on <code>","</code>, otherwise, .ssh
+ * directory concatenated with all 3 of <code>"/id_rsa"</code>,
+ * <code>"/id_dsa"</code>, and <code>"/id_ecdsa"</code> if they exist.
+ * </p>
  */
 public class DefaultSessionFactory implements SessionFactory {
     private static Logger logger = LoggerFactory.getLogger( DefaultSessionFactory.class );
@@ -46,10 +61,23 @@ public class DefaultSessionFactory implements SessionFactory {
     private Proxy proxy;
     private String username;
 
+    /**
+     * Creates a default DefaultSessionFactory.
+     */
     public DefaultSessionFactory() {
         this( null, null, null );
     }
 
+    /**
+     * Constructs a DefaultSessionFactory with the supplied properties.
+     * 
+     * @param username
+     *            The username
+     * @param hostname
+     *            The hostname
+     * @param port
+     *            The port
+     */
     public DefaultSessionFactory( String username, String hostname, Integer port ) {
         JSch.setLogger( new Slf4jBridge() );
         jsch = new JSch();
@@ -118,22 +146,27 @@ public class DefaultSessionFactory implements SessionFactory {
         return dotSshDir;
     }
 
+    @Override
     public String getHostname() {
         return hostname;
     }
 
+    @Override
     public int getPort() {
         return port;
     }
 
+    @Override
     public Proxy getProxy() {
         return proxy;
     }
 
+    @Override
     public String getUsername() {
         return username;
     }
 
+    @Override
     public Session newSession() throws JSchException {
         Session session = jsch.getSession( username, hostname, port );
         if ( config != null ) {
@@ -147,7 +180,8 @@ public class DefaultSessionFactory implements SessionFactory {
         return session;
     }
 
-    public SessionFactoryBuilder newSessionFactoryBuilder() throws JSchException {
+    @Override
+    public SessionFactoryBuilder newSessionFactoryBuilder() {
         return new SessionFactoryBuilder( jsch, username, hostname, port, proxy, config ) {
             @Override
             public SessionFactory build() {
@@ -158,10 +192,40 @@ public class DefaultSessionFactory implements SessionFactory {
         };
     }
 
+    /**
+     * Sets the configuration options for the sessions created by this factory.
+     * This method will replace the current SessionFactory <code>config</code>
+     * map. If you want to add, rather than replace, see
+     * {@link #setConfig(String, String)}. All of these options will be added
+     * one at a time using
+     * {@link com.jcraft.jsch.Session#setConfig(String, String)
+     * Session.setConfig(String, String)}. Details on the supported options can
+     * be found in the source for {@link com.jcraft.jsch.Session#applyConfig()}.
+     * 
+     * @param config
+     *            The configuration options
+     * 
+     * @see com.jcraft.jsch.Session#setConfig(java.util.Hashtable)
+     * @see com.jcraft.jsch.Session#applyConfig()
+     */
     public void setConfig( Map<String, String> config ) {
         this.config = config;
     }
 
+    /**
+     * Adds a single configuration options for the sessions created by this
+     * factory. Details on the supported options can be found in the source for
+     * {@link com.jcraft.jsch.Session#applyConfig()}.
+     * 
+     * @param key
+     *            The name of the option
+     * @param value
+     *            The value of the option
+     * 
+     * @see #setConfig(Map)
+     * @see com.jcraft.jsch.Session#setConfig(java.util.Hashtable)
+     * @see com.jcraft.jsch.Session#applyConfig()
+     */
     public void setConfig( String key, String value ) {
         if ( config == null ) {
             config = new HashMap<String, String>();
@@ -202,12 +266,16 @@ public class DefaultSessionFactory implements SessionFactory {
             logger.debug( "Failed to load any keys from AgentProxy:", e );
         }
         if ( !identitiesSet ) {
-            List<String> privateKeyFiles = new ArrayList<String>();
             String privateKeyFilesString = System.getProperty( PROPERTY_JSCH_PRIVATE_KEY_FILES );
             if ( privateKeyFilesString != null && !privateKeyFilesString.isEmpty() ) {
+                logger.info( "Using local identities from {}: {}",
+                        PROPERTY_JSCH_PRIVATE_KEY_FILES, privateKeyFilesString );
                 setIdentitiesFromPrivateKeys( Arrays.asList( privateKeyFilesString.split( "," ) ) );
+                identitiesSet = true;
             }
-
+        }
+        if ( !identitiesSet ) {
+            List<String> privateKeyFiles = new ArrayList<String>();
             for ( File file : new File[] {
                     new File( dotSshDir(), "id_rsa" ),
                     new File( dotSshDir(), "id_dsa" ),
@@ -221,15 +289,43 @@ public class DefaultSessionFactory implements SessionFactory {
         }
     }
 
+    /**
+     * Sets the hostname.
+     * 
+     * @param hostname
+     *            The hostname.
+     */
     public void setHostname( String hostname ) {
         this.hostname = hostname;
     }
 
+    /**
+     * Configures this factory to use a single identity authenticated by the
+     * supplied private key. The private key should be the path to a private key
+     * file in OpenSSH format. Clears out the current {@link IdentityRepository}
+     * before adding this key.
+     * 
+     * @param privateKey
+     *            Path to a private key file
+     * @throws JSchException
+     *             If the key is invalid
+     */
     public void setIdentityFromPrivateKey( String privateKey ) throws JSchException {
         clearIdentityRepository();
         jsch.addIdentity( privateKey );
     }
 
+    /**
+     * Configures this factory to use a list of identities authenticated by the
+     * supplied private keys. The private keys should be the paths to a private
+     * key files in OpenSSH format. Clears out the current
+     * {@link IdentityRepository} before adding these keys.
+     * 
+     * @param privateKeys
+     *            A list of paths to private key files
+     * @throws JSchException
+     *             If one (or more) of the keys are invalid
+     */
     public void setIdentitiesFromPrivateKeys( List<String> privateKeys ) throws JSchException {
         clearIdentityRepository();
         for ( String privateKey : privateKeys ) {
@@ -237,26 +333,76 @@ public class DefaultSessionFactory implements SessionFactory {
         }
     }
 
+    /**
+     * Sets the {@link IdentityRepository} for this factory. This will replace
+     * any current IdentityRepository, so you should be sure to call this before
+     * any of the <code>setIdentit(y|ies)Xxx</code> if you plan on using both.
+     * 
+     * @param identityRepository
+     *            The identity repository
+     * 
+     * @see JSch#setIdentityRepository(IdentityRepository)
+     */
     public void setIdentityRepository( IdentityRepository identityRepository ) {
         jsch.setIdentityRepository( identityRepository );
     }
 
+    /**
+     * Sets the known hosts from the stream. Mostly useful if you distribute
+     * your known_hosts in the jar for your application rather than allowing
+     * users to manage their own known hosts.
+     * 
+     * @param knownHosts
+     *            A stream of known hosts
+     * @throws JSchException
+     *             If an I/O error occurs
+     * 
+     * @see JSch#setKnownHosts(InputStream)
+     */
     public void setKnownHosts( InputStream knownHosts ) throws JSchException {
         jsch.setKnownHosts( knownHosts );
     }
 
+    /**
+     * Sets the known hosts from a file at path <code>knownHosts</code>.
+     * 
+     * @param knownHosts
+     *            The path to a known hosts file
+     * @throws JSchException
+     *             If an I/O error occurs
+     * 
+     * @see JSch#setKnownHosts(String)
+     */
     public void setKnownHosts( String knownHosts ) throws JSchException {
         jsch.setKnownHosts( knownHosts );
     }
 
+    /**
+     * Sets the port.
+     * 
+     * @param port
+     *            The port
+     */
     public void setPort( int port ) {
         this.port = port;
     }
 
+    /**
+     * Sets the proxy through which all connections will be piped.
+     * 
+     * @param proxy
+     *            The proxy
+     */
     public void setProxy( Proxy proxy ) {
         this.proxy = proxy;
     }
 
+    /**
+     * Sets the username.
+     * 
+     * @param username
+     *            The username
+     */
     public void setUsername( String username ) {
         this.username = username;
     }

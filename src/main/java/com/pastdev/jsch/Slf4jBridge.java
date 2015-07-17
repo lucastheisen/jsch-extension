@@ -5,6 +5,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
+/**
+ * Bridges all JSch logging to the SLF4J API.
+ */
 public class Slf4jBridge implements com.jcraft.jsch.Logger {
     private static Logger logger = LoggerFactory.getLogger( Slf4jBridge.class );
 
