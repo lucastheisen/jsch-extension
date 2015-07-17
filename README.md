@@ -127,6 +127,19 @@ TunnelConnectionManager manager = new TunnelConnectionManager(
 manager.open();
 ```
 
+### Multi-hop tunnels
+Sometimes it is necessary to go through multiple servers along the way to your destination.  This can be accomplished using a simplified _path and spec_ syntax:
+
+```java
+TunnelConnectionManager manager = new TunnelConnectionManager( 
+        sessionFactory,
+        "me@bastion.host->webuser@webserver.gateway|127.0.0.2:80:webserver:80", 
+        "me@bastion.host->webadmin@webserver.gateway|127.0.0.2:13389:webserver:13389" );
+manager.open();
+```
+
+This will tunnel through the bastion host as `me` and, tunnel through the webserver gateway as different users depending on what is being tunneled to.  The local ports will then be forwarded from the webserver gateway to the webserver as specified.
+
 ### DataSource wrapper
 The datasource wrapper comes in really handy when your database is locked down behind a firewall with no external connections allowed.  Instead you can use an ssh connection the the server and tunnel your database connection through it making it appear as if the connection is local:
 
