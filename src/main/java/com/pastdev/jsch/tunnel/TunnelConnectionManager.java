@@ -53,7 +53,7 @@ public class TunnelConnectionManager implements Closeable {
      * @throws JSchException
      *             For connection failures
      * 
-     * @see {@link #setTunnelConnections(Iterable)}
+     * @see #setTunnelConnections(Iterable)
      */
     public TunnelConnectionManager( SessionFactory baseSessionFactory ) throws JSchException {
         logger.debug( "Creating TunnelConnectionManager" );
@@ -73,7 +73,7 @@ public class TunnelConnectionManager implements Closeable {
      * @throws JSchException
      *             For connection failures
      * 
-     * @see {@link #setTunnelConnections(Iterable)}
+     * @see #setTunnelConnections(Iterable)
      */
     public TunnelConnectionManager( SessionFactory baseSessionFactory, String... pathAndSpecList ) throws JSchException {
         this( baseSessionFactory, Arrays.asList( pathAndSpecList ) );
@@ -92,7 +92,7 @@ public class TunnelConnectionManager implements Closeable {
      * @throws JSchException
      *             For connection failures
      * 
-     * @see {@link #setTunnelConnections(Iterable)}
+     * @see #setTunnelConnections(Iterable)
      */
     public TunnelConnectionManager( SessionFactory baseSessionFactory, Iterable<String> pathAndSpecList ) throws JSchException {
         this( baseSessionFactory );
@@ -169,9 +169,9 @@ public class TunnelConnectionManager implements Closeable {
      * Creates a set of tunnel connections based upon the contents of
      * <code>tunnelsConfig</code>. The format of this file is one path and
      * tunnel per line. Comments and empty lines are allowed and are excluded
-     * using the pattern <code>^\s*(?:#.*)?$<code>.
+     * using the pattern <code>^\s*(?:#.*)?$</code>.
      * 
-     * @param tunnelsConfig
+     * @param tunnelsConfig A file containing tunnel configuration
      * @throws IOException
      *             If unable to read from <code>tunnelsConfig</code>
      * @throws JSchException
@@ -209,7 +209,7 @@ public class TunnelConnectionManager implements Closeable {
      * path and tunnels = path and tunnel, {new line, path and tunnel}
      * path and tunnel = path, "|", tunnel
      * new line = "\n"
-     * path = path part, {"->", path part}
+     * path = path part, {"-&gt;", path part}
      * path part = {user, "@"}, hostname
      * tunnel = {local part}, ":", destination hostname, ":", destination port
      * local part = {local alias, ":"}, local port
@@ -227,7 +227,7 @@ public class TunnelConnectionManager implements Closeable {
      * </p>
      * <p>
      * <code>
-     * jimhenson@admin.muppets.com->animal@drteethandtheelectricmahem.muppets.com|drteeth:8080:drteeth.muppets.com:80
+     * jimhenson@admin.muppets.com-&gt;animal@drteethandtheelectricmahem.muppets.com|drteeth:8080:drteeth.muppets.com:80
      * </code>
      * </p>
      * <p>

@@ -33,13 +33,13 @@ import com.jcraft.jsch.agentproxy.RemoteIdentityRepository;
  * <i>conventional</i> configuration including
  * 
  * <p style="margin-left: 20px;">
- * <b>username</b>: System property <code>user.name</code> <br />
- * <b>hostname</b>: localhost <br />
- * <b>port</b>: 22 <br />
+ * <b>username</b>: System property <code>user.name</code> <br>
+ * <b>hostname</b>: localhost <br>
+ * <b>port</b>: 22 <br>
  * <b>.ssh directory:</b> System property <code>jsch.dotSsh</code>, or system
- * property <code>user.home</code> concatenated with <code>"/.ssh"</code> <br />
+ * property <code>user.home</code> concatenated with <code>"/.ssh"</code> <br>
  * <b>known hosts:</b> System property <code>jsch.knownHosts.file</code> or,
- * .ssh directory concatenated with <code>"/known_hosts"</code>. <br />
+ * .ssh directory concatenated with <code>"/known_hosts"</code>. <br>
  * <b>private keys:</b> First checks for an agent proxy using
  * {@link ConnectorFactory#createConnector()}, then system property
  * <code>jsch.privateKey.files</code> split on <code>","</code>, otherwise, .ssh

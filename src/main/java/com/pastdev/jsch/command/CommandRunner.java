@@ -47,7 +47,7 @@ public class CommandRunner implements Closeable {
     /**
      * Closes the underlying {@link SessionManager}.
      * 
-     * @see {@link SessionManager#close()}
+     * @see SessionManager#close()
      */
     @Override
     public void close() throws IOException {

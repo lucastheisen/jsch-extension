@@ -32,38 +32,47 @@ public class TunnelConnection implements Closeable {
     private Iterable<Tunnel> tunnels;
 
     /**
-     * Creates a TunnelConnection using the the <code>sessionFactory</code>
-     * to obtain its ssh connection with a single tunnel defined by
-     * {@link com.pastdev.jsch.tunnel.Tunnel#Tunnel(int, String, int) Tunnel(localPort, destinationHostname, destinationPort)}.
+     * Creates a TunnelConnection using the the <code>sessionFactory</code> to
+     * obtain its ssh connection with a single tunnel defined by
+     * {@link com.pastdev.jsch.tunnel.Tunnel#Tunnel(int, String, int)
+     * Tunnel(localPort, destinationHostname, destinationPort)}.
      * 
-     * @param sessionFactory The sessionFactory
-     * @param localPort The local port to bind to
-     * @param destinationHostname The destination hostname to tunnel to
-     * @param destinationPort The destination port to tunnel to
+     * @param sessionFactory
+     *            The sessionFactory
+     * @param localPort
+     *            The local port to bind to
+     * @param destinationHostname
+     *            The destination hostname to tunnel to
+     * @param destinationPort
+     *            The destination port to tunnel to
      */
     public TunnelConnection( SessionFactory sessionFactory, int localPort, String destinationHostname, int destinationPort ) {
         this( sessionFactory, new Tunnel( localPort, destinationHostname, destinationPort ) );
     }
 
     /**
-     * Creates a TunnelConnection using the the <code>sessionFactory</code>
-     * to obtain its ssh connection with a list of 
+     * Creates a TunnelConnection using the the <code>sessionFactory</code> to
+     * obtain its ssh connection with a list of
      * {@link com.pastdev.jsch.tunnel.Tunnel Tunnel's}.
      * 
-     * @param sessionFactory The sessionFactory
-     * @param tunnels The tunnels
+     * @param sessionFactory
+     *            The sessionFactory
+     * @param tunnels
+     *            The tunnels
      */
     public TunnelConnection( SessionFactory sessionFactory, Tunnel... tunnels ) {
         this( sessionFactory, Arrays.asList( tunnels ) );
     }
 
     /**
-     * Creates a TunnelConnection using the the <code>sessionFactory</code>
-     * to obtain its ssh connection with a list of 
+     * Creates a TunnelConnection using the the <code>sessionFactory</code> to
+     * obtain its ssh connection with a list of
      * {@link com.pastdev.jsch.tunnel.Tunnel Tunnel's}.
      * 
-     * @param sessionFactory The sessionFactory
-     * @param tunnels The tunnels
+     * @param sessionFactory
+     *            The sessionFactory
+     * @param tunnels
+     *            The tunnels
      */
     public TunnelConnection( SessionFactory sessionFactory, List<Tunnel> tunnels ) {
         this.sessionFactory = sessionFactory;
@@ -89,30 +98,32 @@ public class TunnelConnection implements Closeable {
             tunnel.setAssignedLocalPort( 0 );
         }
     }
-    
+
     /**
-     * Returns the tunnel matching the supplied values, or <code>null</code>
-     * if there isn't one that matches.
+     * Returns the tunnel matching the supplied values, or <code>null</code> if
+     * there isn't one that matches.
      * 
-     * @param destinationHostname The tunnels destination hostname
-     * @param destinationPort The tunnels destination port
+     * @param destinationHostname
+     *            The tunnels destination hostname
+     * @param destinationPort
+     *            The tunnels destination port
      * 
      * @return The tunnel matching the supplied values
      */
     public Tunnel getTunnel( String destinationHostname, int destinationPort ) {
-        return tunnelsByDestination.get( 
+        return tunnelsByDestination.get(
                 hostnamePortKey( destinationHostname, destinationPort ) );
     }
-    
+
     private String hostnamePortKey( Tunnel tunnel ) {
-        return hostnamePortKey( tunnel.getDestinationHostname(), 
+        return hostnamePortKey( tunnel.getDestinationHostname(),
                 tunnel.getDestinationPort() );
     }
 
     private String hostnamePortKey( String hostname, int port ) {
         return hostname + ":" + port;
     }
-    
+
     /**
      * Returns true if the underlying ssh session is open.
      * 
@@ -126,6 +137,7 @@ public class TunnelConnection implements Closeable {
      * Opens a session and connects all of the tunnels.
      * 
      * @throws JSchException
+     *             If unable to connect
      */
     public void open() throws JSchException {
         if ( isOpen() ) {
@@ -156,11 +168,13 @@ public class TunnelConnection implements Closeable {
         }
         logger.info( "forwarding {}", this );
     }
-    
+
     /**
-     * Closes, and re-opens the session and all its tunnels.  Effectively 
-     * calls {@link #close()} followed by a call to {@link #open()}.
+     * Closes, and re-opens the session and all its tunnels. Effectively calls
+     * {@link #close()} followed by a call to {@link #open()}.
+     * 
      * @throws JSchException
+     *             If unable to connect
      */
     public void reopen() throws JSchException {
         IOUtils.closeAndLogException( this );
