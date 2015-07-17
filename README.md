@@ -1,12 +1,12 @@
 jsch-extension
 ==============
 jsch-extension as an extension of the [JSch library](http://www.jcraft.com/jsch/) providing:
-* A session factory for creating multiple sessions from the same configuration
-* A proxy mechanism for the ssh connections allowing multi-hop tunneling
-* A simplified command execution interface
-* A simplified `sftp` interface
-* A simplified `scp` interface
-* Tunneling with simplified configuration and management
+* A [session factory](#session-factory) for creating multiple sessions from the same configuration
+* A [proxy mechanism](#proxy-mechanism) for the ssh connections allowing multi-hop tunneling
+* A [simplified command execution](#simplified-command-execution) interface
+* A [simplified sftp](#simplified-sftp) interface
+* A [simplified scp](#simplified-scp) interface
+* [Tunneling](#tunneling) with simplified configuration and management
 
 ## Session Factory
 A session factory is basically a container for configuration paired with a simple factory for creating `com.jcraft.jsch.Session` objects.  It is the core abstraction of the jsch-extension library.  The `DefaultSessionFactory` class is a default implementation providing useful configuration options.  For example:
