@@ -57,6 +57,7 @@ public class DefaultSessionFactory implements SessionFactory {
     private File dotSshDir;
     private String hostname;
     private JSch jsch;
+    private String password;
     private int port = SSH_PORT;
     private Proxy proxy;
     private String username;
@@ -177,6 +178,9 @@ public class DefaultSessionFactory implements SessionFactory {
         if ( proxy != null ) {
             session.setProxy( proxy );
         }
+        if ( password != null ) {
+            session.setPassword( password );
+        }
         return session;
     }
 
@@ -187,6 +191,7 @@ public class DefaultSessionFactory implements SessionFactory {
             public SessionFactory build() {
                 DefaultSessionFactory sessionFactory = new DefaultSessionFactory( jsch, username, hostname, port, proxy );
                 sessionFactory.config = config;
+                sessionFactory.password = password;
                 return sessionFactory;
             }
         };
@@ -375,6 +380,19 @@ public class DefaultSessionFactory implements SessionFactory {
      */
     public void setKnownHosts( String knownHosts ) throws JSchException {
         jsch.setKnownHosts( knownHosts );
+    }
+    
+    /**
+     * Sets the {@code password} used to authenticate {@code username}.  This
+     * mode of authentication is not recommended as it would keep the password
+     * in memory and if the application dies and writes a heap dump, it would
+     * be available.  Using {@link Identity} would be better, or even using
+     * ssh agent support.
+     * 
+     * @param password the password for {@code username}
+     */
+    public void setPassword( String password ) {
+        this.password = password;
     }
 
     /**
