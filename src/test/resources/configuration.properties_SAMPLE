@@ -3,6 +3,7 @@ ssh.privateKey=C:/Users/ltheisen/.ssh/id_dsa
 scp.out.test.scpPath=/tmp
 scp.out.test.filesystemPath=C:/Cygwin/tmp
 scp.out.test.username=ltheisen
+scp.out.test.password=
 scp.out.test.port=22
 dataSource.driver=com.mysql.jdbc.Driver
 dataSource.password=
