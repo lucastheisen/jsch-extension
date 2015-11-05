@@ -12,12 +12,16 @@ import java.util.Properties;
 
 import org.junit.Assume;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-import com.pastdev.jsch.command.CommandRunner;
+import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.Session;
+import com.jcraft.jsch.UIKeyboardInteractive;
+import com.jcraft.jsch.UserInfo;
 
 
 public class ConnectionTest {
@@ -45,43 +49,96 @@ public class ConnectionTest {
         finally {
             IOUtils.closeAndLogException( inputStream );
         }
+
         username = properties.getProperty( "scp.out.test.username" );
         hostname = properties.getProperty( "scp.out.test.host" );
         correctPassword = properties.getProperty( "scp.out.test.password" );
-        Assume.assumeNotNull( correctPassword );
-        incorrectPassword = correctPassword + ".";
         port = Integer.parseInt( properties.getProperty( "scp.out.test.port" ) );
+
+        incorrectPassword = correctPassword + ".";
     }
 
-    private SessionFactory getSessionFactory( String password ) throws IOException {
-        final DefaultSessionFactory defaultSessionFactory = new DefaultSessionFactory( username, hostname, port );
-        defaultSessionFactory.setConfig( "PreferredAuthentications", "keyboard-interactive" ); // to
-                                                                                               // exclude
-                                                                                               // publickey
-                                                                                               // auth
+    private SessionFactory getKeyboardInteractiveAuthenticatingSessionFactory( String password )
+            throws IOException {
+        final DefaultSessionFactory defaultSessionFactory =
+                new DefaultSessionFactory( username, hostname, port );
+        defaultSessionFactory.setConfig( "PreferredAuthentications",
+                "keyboard-interactive" );
+        defaultSessionFactory.setUserInfo( new TestUserInfo( password ) );
+        return defaultSessionFactory;
+    }
+
+    private SessionFactory getPasswordAuthenticatingSessionFactory( String password )
+            throws IOException {
+        final DefaultSessionFactory defaultSessionFactory =
+                new DefaultSessionFactory( username, hostname, port );
+        defaultSessionFactory.setConfig( "PreferredAuthentications", "password" );
         defaultSessionFactory.setPassword( password );
         return defaultSessionFactory;
     }
 
-    private void testConnectionWithPassword( String password ) throws Exception {
-        CommandRunner commandRunner = null;
+    private void testKeyboardInteractiveConnectionWithPassword( String password ) throws Exception {
+        Session session = null;
         try {
-            commandRunner = new CommandRunner( getSessionFactory( password ) );
-            final String expected = "hello";
-            CommandRunner.ExecuteResult result = commandRunner.execute( "echo " + expected );
-            assertEquals( 0, result.getExitCode() );
-            assertEquals( expected + "\n", result.getStdout() );
-            assertEquals( "", result.getStderr() );
+            session = getKeyboardInteractiveAuthenticatingSessionFactory( password )
+                    .newSession();
+            session.connect();
         }
         finally {
-            IOUtils.closeAndLogException( commandRunner );
+            if ( session != null ) {
+                session.disconnect();
+            }
+        }
+    }
+
+    private void testPasswordConnectionWithPassword( String password ) throws Exception {
+        Session session = null;
+        try {
+            session = getPasswordAuthenticatingSessionFactory( password )
+                    .newSession();
+            session.connect();
+        }
+        finally {
+            if ( session != null ) {
+                session.disconnect();
+            }
+        }
+    }
+
+    @Ignore
+    @Test
+    public void testKeyboardInteractiveConnectionWithCorrectPassword() {
+        // Doesnt seem to work with cygwin
+        Assume.assumeNotNull( username, correctPassword );
+        try {
+            testKeyboardInteractiveConnectionWithPassword( correctPassword );
+        }
+        catch ( Exception e ) {
+            fail( e.getMessage() );
+        }
+    }
+
+    @Ignore
+    @Test
+    public void testKeyboardInteractiveConnectionWithIncorrectPassword() {
+        // Doesnt seem to work with cygwin
+        Assume.assumeNotNull( username, incorrectPassword );
+        try {
+            testKeyboardInteractiveConnectionWithPassword( incorrectPassword );
+        }
+        catch ( JSchException e ) {
+            assertEquals( "Auth fail", e.getMessage() );
+        }
+        catch ( Exception e ) {
+            fail( "Unexpected exception: " + e.getMessage() );
         }
     }
 
     @Test
-    public void testConnectionWithCorrectPassword() {
+    public void testPasswordConnectionWithCorrectPassword() {
+        Assume.assumeNotNull( username, correctPassword );
         try {
-            testConnectionWithPassword( correctPassword );
+            testPasswordConnectionWithPassword( correctPassword );
         }
         catch ( Exception e ) {
             fail( e.getMessage() );
@@ -89,13 +146,65 @@ public class ConnectionTest {
     }
 
     @Test
-    public void testConnectionWithIncorrectPassword() {
+    public void testPasswordConnectionWithIncorrectPassword() {
+        Assume.assumeNotNull( username, incorrectPassword );
         try {
-            testConnectionWithPassword( incorrectPassword );
+            testPasswordConnectionWithPassword( incorrectPassword );
+        }
+        catch ( JSchException e ) {
+            assertEquals( "Auth fail", e.getMessage() );
         }
         catch ( Exception e ) {
-            assertEquals( e.getClass(), com.jcraft.jsch.JSchException.class );
-            assertEquals( e.getMessage(), "Auth cancel" );
+            fail( "Unexpected exception: " + e.getMessage() );
+        }
+    }
+
+    private static final class TestUserInfo implements UserInfo, UIKeyboardInteractive {
+        private String password;
+
+        public TestUserInfo( String password ) {
+            this.password = password;
+        }
+
+        @Override
+        public String[] promptKeyboardInteractive( String destination, String name, String instruction, String[] prompt, boolean[] echo ) {
+            logger.debug( "getPassphrase()" );
+            return new String[] { password };
+        }
+
+        @Override
+        public String getPassphrase() {
+            logger.debug( "getPassphrase()" );
+            return null;
+        }
+
+        @Override
+        public String getPassword() {
+            logger.debug( "getPassword()" );
+            return password;
+        }
+
+        @Override
+        public boolean promptPassword( String message ) {
+            logger.debug( "promptPassword({})", message );
+            return false;
+        }
+
+        @Override
+        public boolean promptPassphrase( String message ) {
+            logger.debug( "promptPassphrase({})", message );
+            return false;
+        }
+
+        @Override
+        public boolean promptYesNo( String message ) {
+            logger.debug( "promptYesNo({})", message );
+            return false;
+        }
+
+        @Override
+        public void showMessage( String message ) {
+            logger.debug( "showMessage({})", message );
         }
     }
 }

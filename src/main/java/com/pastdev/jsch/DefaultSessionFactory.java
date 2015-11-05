@@ -21,6 +21,7 @@ import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Proxy;
 import com.jcraft.jsch.Session;
+import com.jcraft.jsch.UserInfo;
 import com.jcraft.jsch.agentproxy.AgentProxyException;
 import com.jcraft.jsch.agentproxy.Connector;
 import com.jcraft.jsch.agentproxy.ConnectorFactory;
@@ -60,6 +61,7 @@ public class DefaultSessionFactory implements SessionFactory {
     private String password;
     private int port = SSH_PORT;
     private Proxy proxy;
+    private UserInfo userInfo;
     private String username;
 
     /**
@@ -180,6 +182,9 @@ public class DefaultSessionFactory implements SessionFactory {
         }
         if ( password != null ) {
             session.setPassword( password );
+        }
+        if ( userInfo != null ) {
+            session.setUserInfo( userInfo );
         }
         return session;
     }
@@ -381,15 +386,16 @@ public class DefaultSessionFactory implements SessionFactory {
     public void setKnownHosts( String knownHosts ) throws JSchException {
         jsch.setKnownHosts( knownHosts );
     }
-    
+
     /**
-     * Sets the {@code password} used to authenticate {@code username}.  This
+     * Sets the {@code password} used to authenticate {@code username}. This
      * mode of authentication is not recommended as it would keep the password
-     * in memory and if the application dies and writes a heap dump, it would
-     * be available.  Using {@link Identity} would be better, or even using
-     * ssh agent support.
+     * in memory and if the application dies and writes a heap dump, it would be
+     * available. Using {@link Identity} would be better, or even using ssh
+     * agent support.
      * 
-     * @param password the password for {@code username}
+     * @param password
+     *            the password for {@code username}
      */
     public void setPassword( String password ) {
         this.password = password;
@@ -413,6 +419,21 @@ public class DefaultSessionFactory implements SessionFactory {
      */
     public void setProxy( Proxy proxy ) {
         this.proxy = proxy;
+    }
+
+    /**
+     * Sets the {@code UserInfo} for use with {@code keyboard-interactive}
+     * authentication.  This may be useful, however, setting the password
+     * with {@link #setPassword(String)} is likely sufficient.
+     * 
+     * @param userInfo
+     * 
+     * @see <a
+     *      href="http://www.jcraft.com/jsch/examples/UserAuthKI.java.html">Keyboard
+     *      Interactive Authentication Example</a>
+     */
+    public void setUserInfo( UserInfo userInfo ) {
+        this.userInfo = userInfo;
     }
 
     /**
