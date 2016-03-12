@@ -55,6 +55,16 @@ public class CommandRunner implements Closeable {
     }
 
     /**
+     * Returns a new CommandRunner with the same SessionFactory, but will
+     * create a separate session.
+     * 
+     * @return A duplicate CommandRunner with a different session.
+     */
+    public CommandRunner duplicate() {
+        return new CommandRunner( sessionManager.getSessionFactory() );
+    }
+
+    /**
      * Executes <code>command</code> and returns the result. Use this method
      * when the command you are executing requires no input, writes only UTF-8
      * compatible text to STDOUT and/or STDERR, and you are comfortable with
