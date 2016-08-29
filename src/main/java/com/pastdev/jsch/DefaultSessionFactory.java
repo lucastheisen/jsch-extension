@@ -170,6 +170,11 @@ public class DefaultSessionFactory implements SessionFactory {
     }
 
     @Override
+    public UserInfo getUserInfo() {
+        return userInfo;
+    }
+
+    @Override
     public Session newSession() throws JSchException {
         Session session = jsch.getSession( username, hostname, port );
         if ( config != null ) {
@@ -191,12 +196,13 @@ public class DefaultSessionFactory implements SessionFactory {
 
     @Override
     public SessionFactoryBuilder newSessionFactoryBuilder() {
-        return new SessionFactoryBuilder( jsch, username, hostname, port, proxy, config ) {
+        return new SessionFactoryBuilder( jsch, username, hostname, port, proxy, config, userInfo ) {
             @Override
             public SessionFactory build() {
                 DefaultSessionFactory sessionFactory = new DefaultSessionFactory( jsch, username, hostname, port, proxy );
                 sessionFactory.config = config;
                 sessionFactory.password = password;
+                sessionFactory.userInfo = userInfo;
                 return sessionFactory;
             }
         };

@@ -8,6 +8,7 @@ import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Proxy;
 import com.jcraft.jsch.Session;
+import com.jcraft.jsch.UserInfo;
 
 
 /**
@@ -45,9 +46,17 @@ public interface SessionFactory {
      * Returns the username that sessions built by this factory will connect
      * with.
      * 
-     * @return The port
+     * @return The username
      */
     public String getUsername();
+
+    /**
+     * Returns the userInfo that sessions built by this factory will connect
+     * with.
+     * 
+     * @return The userInfo
+     */
+    public UserInfo getUserInfo();
 
     /**
      * Returns a new session using the configured properties.
@@ -75,14 +84,16 @@ public interface SessionFactory {
         protected int port;
         protected Proxy proxy;
         protected String username;
+        protected UserInfo userInfo;
 
-        protected SessionFactoryBuilder( JSch jsch, String username, String hostname, int port, Proxy proxy, Map<String, String> config ) {
+        protected SessionFactoryBuilder( JSch jsch, String username, String hostname, int port, Proxy proxy, Map<String, String> config, UserInfo userInfo ) {
             this.jsch = jsch;
             this.username = username;
             this.hostname = hostname;
             this.port = port;
             this.proxy = proxy;
             this.config = config;
+            this.userInfo = userInfo;
         }
 
         /**
@@ -146,6 +157,18 @@ public interface SessionFactory {
          */
         public SessionFactoryBuilder setUsername( String username ) {
             this.username = username;
+            return this;
+        }
+
+        /**
+         * Replaces the current username with <code>userInfo</code>
+         * 
+         * @param userInfo
+         *            The new userInfo
+         * @return This builder
+         */
+        public SessionFactoryBuilder setUserInfo( UserInfo userInfo ) {
+            this.userInfo = userInfo;
             return this;
         }
 
