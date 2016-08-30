@@ -161,7 +161,7 @@ public interface SessionFactory {
         }
 
         /**
-         * Replaces the current username with <code>userInfo</code>
+         * Replaces the current userInfo with <code>userInfo</code>
          * 
          * @param userInfo
          *            The new userInfo
