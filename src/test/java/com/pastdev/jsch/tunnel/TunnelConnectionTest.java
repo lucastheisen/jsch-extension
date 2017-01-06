@@ -126,7 +126,7 @@ public class TunnelConnectionTest {
                     serviceBufferReady.signalAll();
                 }
                 catch ( Exception e ) {
-                    logger.error( "failed for to open service on port {}: ", servicePort, e );
+                    logger.error( "failed to open service on port {}: ", servicePort, e );
                     logger.debug( "failed:", e );
                 }
                 finally {
