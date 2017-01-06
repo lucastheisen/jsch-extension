@@ -227,13 +227,15 @@ public class CommandRunner implements Closeable {
                     IOUtils.closeAndLogException( stdOut );
                     IOUtils.closeAndLogException( stdErr );
                     int i = 0;
-                    while ( (exitCode = channel.getExitStatus()) == -1 ) {
+                    //while ( (exitCode = channel.getExitStatus()) == -1 ) {
+                    while ( !channel.isClosed() ) {
                         logger.trace( "waiting for exit {}", i++ );
                         try {
                             Thread.sleep( 100 );
                         }
                         catch ( InterruptedException e ) {}
                     }
+                    exitCode = channel.getExitStatus();
                 }
                 finally {
                     if ( channel.isConnected() ) {

@@ -117,6 +117,33 @@ public class CommandRunnerTest {
     }
 
     @Test
+    public void testSlowCommand() {
+        CommandRunner commandRunner = null;
+        try {
+            commandRunner = new CommandRunner( sessionFactory );
+
+            logger.debug( "run a command" );
+            ExecuteResult result = commandRunner.execute( "sleep 3;echo " + expected );
+            assertEquals( 0, result.getExitCode() );
+            assertEquals( expected + "\n", result.getStdout() );
+            assertEquals( "", result.getStderr() );
+
+            // test automatic reconnect...
+            commandRunner.close();
+
+            logger.debug( "cool, even slow commands work" );
+        }
+        catch ( Exception e ) {
+            logger.error( "failed for command runner {}: {}", commandRunner, e );
+            logger.debug( "failed:", e );
+            fail( e.getMessage() );
+        }
+        finally {
+            IOUtils.closeAndLogException( commandRunner );
+        }
+    }
+
+    @Test
     public void testDetectOs() {
         CommandRunner commandRunner = null;
         try {
