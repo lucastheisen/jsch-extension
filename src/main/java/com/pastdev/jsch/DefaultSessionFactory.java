@@ -1,31 +1,17 @@
 package com.pastdev.jsch;
 
 
-import java.io.File;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Vector;
-
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-
-import com.jcraft.jsch.Identity;
-import com.jcraft.jsch.IdentityRepository;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.Proxy;
-import com.jcraft.jsch.Session;
-import com.jcraft.jsch.UserInfo;
+import com.jcraft.jsch.*;
 import com.jcraft.jsch.agentproxy.AgentProxyException;
 import com.jcraft.jsch.agentproxy.Connector;
 import com.jcraft.jsch.agentproxy.ConnectorFactory;
 import com.jcraft.jsch.agentproxy.RemoteIdentityRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.InputStream;
+import java.util.*;
 
 
 /**
@@ -329,6 +315,24 @@ public class DefaultSessionFactory implements SessionFactory {
     public void setIdentityFromPrivateKey( String privateKey ) throws JSchException {
         clearIdentityRepository();
         jsch.addIdentity( privateKey );
+    }
+
+    /**
+     * Configures this factory to use a single identity authenticated by the
+     * supplied private key and pass phrase. The private key should be the path
+     * to a private key file in OpenSSH format. Clears out the current
+     * {@link IdentityRepository} before adding this key.
+     *
+     * @param privateKey
+     *            Path to a private key file
+     * @param passPhrase
+     *            Pass phrase for private key
+     * @throws JSchException
+     *             If the key is invalid
+     */
+    public void setIdentityFromPrivateKey( String privateKey, String passPhrase ) throws JSchException {
+        clearIdentityRepository();
+        jsch.addIdentity( privateKey, passPhrase );
     }
 
     /**
