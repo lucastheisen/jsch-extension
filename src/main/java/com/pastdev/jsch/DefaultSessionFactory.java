@@ -332,6 +332,24 @@ public class DefaultSessionFactory implements SessionFactory {
     }
 
     /**
+     * Configures this factory to use a single identity authenticated by the
+     * supplied private key and pass phrase. The private key should be the path
+     * to a private key file in OpenSSH format. Clears out the current
+     * {@link IdentityRepository} before adding this key.
+     *
+     * @param privateKey
+     *            Path to a private key file
+     * @param passPhrase
+     *            Pass phrase for private key
+     * @throws JSchException
+     *             If the key is invalid
+     */
+    public void setIdentityFromPrivateKey( String privateKey, String passPhrase ) throws JSchException {
+        clearIdentityRepository();
+        jsch.addIdentity( privateKey, passPhrase );
+    }
+
+    /**
      * Configures this factory to use a list of identities authenticated by the
      * supplied private keys. The private keys should be the paths to a private
      * key files in OpenSSH format. Clears out the current
