@@ -30,9 +30,9 @@ import com.pastdev.jsch.SessionManager;
  */
 public class CommandRunner implements Closeable {
     private static Logger logger = LoggerFactory.getLogger( CommandRunner.class );
-    private static final Charset UTF8 = Charset.forName( "UTF-8" );
+    protected static final Charset UTF8 = Charset.forName( "UTF-8" );
 
-    private final SessionManager sessionManager;
+    protected final SessionManager sessionManager;
 
     /**
      * Creates a new CommandRunner that will use a {@link SessionManager} that
@@ -132,7 +132,7 @@ public class CommandRunner implements Closeable {
         private String stderr;
         private String stdout;
 
-        private ExecuteResult( int exitCode, String stdout, String stderr ) {
+        public ExecuteResult( int exitCode, String stdout, String stderr ) {
             this.exitCode = exitCode;
             this.stderr = stderr;
             this.stdout = stdout;
@@ -178,16 +178,19 @@ public class CommandRunner implements Closeable {
      * command.
      */
     public class ChannelExecWrapper {
-        private ChannelExec channel;
-        private String command;
-        private OutputStream passedInStdErr;
-        private InputStream passedInStdIn;
-        private OutputStream passedInStdOut;
-        private InputStream stdErr;
-        private OutputStream stdIn;
-        private InputStream stdOut;
+        protected ChannelExec channel;
+        protected String command;
+        protected OutputStream passedInStdErr;
+        protected InputStream passedInStdIn;
+        protected OutputStream passedInStdOut;
+        protected InputStream stdErr;
+        protected OutputStream stdIn;
+        protected InputStream stdOut;
 
-        private ChannelExecWrapper( Session session, String command, InputStream stdIn, OutputStream stdOut, OutputStream stdErr ) throws JSchException, IOException {
+        protected ChannelExecWrapper() {
+        }
+
+        public ChannelExecWrapper( Session session, String command, InputStream stdIn, OutputStream stdOut, OutputStream stdErr ) throws JSchException, IOException {
             this.command = command;
             this.channel = (ChannelExec) session.openChannel( "exec" );
             if ( stdIn != null ) {
